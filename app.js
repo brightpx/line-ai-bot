@@ -76,7 +76,7 @@ app.post("/webhook", async (req, res) => {
         temperature: 0.7,
         max_completion_tokens: 1024,
         top_p: 0.9
-});
+
       });
 
    const answer =
