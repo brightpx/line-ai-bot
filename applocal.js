@@ -2,15 +2,12 @@ const express = require("express");
 const axios = require("axios");
 
 const app = express();
-const Groq = require("groq-sdk");
+
 app.use(express.json());
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-});
 
 const CHANNEL_ACCESS_TOKEN =
-  process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  "U2Qp5Rt0dCZNm3uiwmpyj2TQCdHa30bgQVhbR7qfnUVTUPl/UcOrolI/JO2KRJtdkpR77X7Dums43rTXwySY1TAcN9gi2irNLBcvrIT7IiBZ4kkEsVVtTdVeiAI4682rTFeOJShn/uP5FSTmtjshzQdB04t89/1O/w1cDnyilFU=";
 
 app.post("/webhook", async (req, res) => {
 
@@ -25,23 +22,16 @@ app.post("/webhook", async (req, res) => {
 
     try {
 
-      const completion =
-      await groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "คุณเป็นผู้ช่วยภาษาไทย"
-          },
-          {
-            role: "user",
-            content: userText
-          }
-        ],
-        model: "openai/gpt-oss-120b"
-      });
+        const result = await axios.post(
+        "http://localhost:11434/api/generate",
+        {
+            model: "promptnow/openthaigpt1.5-7b-instruct-q4_k_m",
+            prompt: userText,
+            stream: false
+        }
+        );
 
-    const answer =
-      completion.choices[0].message.content;
+        const answer = result.data.response;
 
       await axios.post(
         "https://api.line.me/v2/bot/message/reply",
@@ -71,8 +61,6 @@ app.post("/webhook", async (req, res) => {
   res.sendStatus(200);
 });
 
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server started on ${PORT}`);
+app.listen(3000, () => {
+  console.log("AI Line Bot Started");
 });
