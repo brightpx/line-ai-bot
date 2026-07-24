@@ -12,6 +12,10 @@ const groq = new Groq({
 const CHANNEL_ACCESS_TOKEN =
   process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
+app.get("/", (req, res) => {
+res.send("LINE AI Bot is running");
+});
+
 app.post("/webhook", async (req, res) => {
 
   const events = req.body.events || [];
@@ -40,8 +44,8 @@ app.post("/webhook", async (req, res) => {
         model: "openai/gpt-oss-120b"
       });
 
-    const answer =
-      completion.choices[0].message.content;
+   const answer =
+      completion.choices[0].message.content.substring(0, 4000);
 
       await axios.post(
         "https://api.line.me/v2/bot/message/reply",
