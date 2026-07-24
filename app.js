@@ -72,7 +72,11 @@ app.post("/webhook", async (req, res) => {
         content: userText
       }
     ],
-        model: "openai/gpt-oss-120b"
+        model: "openai/gpt-oss-120b",
+        temperature: 0.7,
+        max_completion_tokens: 1024,
+        top_p: 0.9
+});
       });
 
    const answer =
