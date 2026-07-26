@@ -3,6 +3,26 @@ const axios = require("axios");
 
 const app = express();
 const Groq = require("groq-sdk");
+const fs = require("fs");
+
+const MEMORY_FILE = "memory.json";
+
+function loadMemory() {
+  if (!fs.existsSync(MEMORY_FILE)) {
+    return [];
+  }
+
+  return JSON.parse(
+    fs.readFileSync(MEMORY_FILE, "utf8")
+  );
+}
+
+function saveMemory(data) {
+  fs.writeFileSync(
+    MEMORY_FILE,
+    JSON.stringify(data, null, 2)
+  );
+}
 app.use(express.json());
 
 const groq = new Groq({
@@ -26,9 +46,80 @@ app.post("/webhook", async (req, res) => {
     if (event.message.type !== "text") continue;
 
     const userText = event.message.text;
+    if (userText.startsWith("/จำ ")) {
 
+      const memoryText =
+        userText.replace("/จำ ", "").trim();
+
+      const memories = loadMemory();
+
+      memories.push({
+        createdAt: new Date().toISOString(),
+        text: memoryText
+      });
+
+      saveMemory(memories);
+
+      await axios.post(
+        "https://api.line.me/v2/bot/message/reply",
+        {
+          replyToken: event.replyToken,
+          messages: [
+            {
+              type: "text",
+              text: "บันทึกข้อมูลเรียบร้อยค่ะ 💕"
+            }
+          ]
+        },
+        {
+          headers: {
+            Authorization:
+              `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      continue;
+    }
+    if (userText === "/ข้อมูล") {
+
+      const memories = loadMemory();
+
+      const answer =
+        memories.length === 0
+          ? "ยังไม่มีข้อมูลที่บันทึกไว้ค่ะ"
+          : memories.map(x => `• ${x.text}`).join("\n");
+
+      await axios.post(
+        "https://api.line.me/v2/bot/message/reply",
+        {
+          replyToken: event.replyToken,
+          messages: [
+            {
+              type: "text",
+              text: answer.substring(0, 4000)
+            }
+          ]
+        },
+        {
+          headers: {
+            Authorization:
+              `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      continue;
+    }
     try {
+      const memories = loadMemory();
 
+      const memoryText =
+        memories
+          .map(x => `- ${x.text}`)
+          .join("\n");
       const completion =
       await groq.chat.completions.create({
      messages: [
@@ -66,6 +157,14 @@ app.post("/webhook", async (req, res) => {
       - ทุกคนรักและเอ็นดูริริญมาก
       - ครอบครัวให้ความสำคัญกับความรัก ความอบอุ่น การศึกษา และความปลอดภัย
       `
+      },
+      {
+        role: "system",
+        content: `
+    ข้อมูลที่บันทึกเพิ่มเติมจากครอบครัว
+
+    ${memoryText}
+    `
       },
       {
         role: "user",
