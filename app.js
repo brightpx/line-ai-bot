@@ -57,7 +57,7 @@ const CHANNEL_ACCESS_TOKEN =
   process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
 async function replyText(replyToken, text) {
-  const prefixed = `อารายา ${text}`;
+  const prefixed = `${text}`;
   await axios.post(
     "https://api.line.me/v2/bot/message/reply",
     {
@@ -91,13 +91,13 @@ app.post("/webhook", async (req, res) => {
     if (event.type !== "message") continue;
     if (event.message.type !== "text") continue;
 
-    const userText = event.message.text;
+    const userText = event.message.text.trim();
     if (userText.startsWith("/จำ ")) {
 
       const memoryText =
         userText.replace("/จำ ", "").trim();
 
-await saveMemory(memoryText);
+      await saveMemory(memoryText);
 
       await replyText(event.replyToken, "บันทึกข้อมูลเรียบร้อยค่ะ 💕");
 
@@ -149,6 +149,27 @@ await saveMemory(memoryText);
 
     continue;
   }
+  // ตอบเฉพาะเมื่อเรียกชื่อ อารายา
+    if (
+      !userText.startsWith("อารายา") &&
+      !userText.startsWith("อารยา")
+    ) {
+      continue;
+    }
+
+    const prompt = userText
+      .replace(/^อารายา\s*/i, "")
+      .replace(/^อารยา\s*/i, "")
+      .trim();
+
+    if (!prompt) {
+      await replyText(
+        event.replyToken,
+        "มีอะไรให้อารายาช่วยไหมคะ 💕"
+      );
+
+      continue;
+    }
     try {
       const memories = await loadMemory();
 
