@@ -157,40 +157,44 @@ app.post("/webhook", async (req, res) => {
 
       continue;
     }
-    if (userText.startsWith("/เวร ")) {
+    if (userText.startsWith("/เวร")) {
 
-      const data =
-        userText.replace("/เวร ", "").trim();
+      const rows = userText
+        .replace("/เวร", "")
+        .trim()
+        .split("\n")
+        .filter(x => x.trim());
 
-      const parts = data.split(" ");
+      let count = 0;
 
-      if (parts.length < 2) {
+      for (const row of rows) {
 
-        await replyText(
-          event.replyToken,
-          "รูปแบบ: /เวร YYYY-MM-DD ชื่อเวร"
+        const parts = row.trim().split(" ");
+
+        if (parts.length < 2) {
+          continue;
+        }
+
+        const workDate = parts[0];
+        const shift = parts.slice(1).join(" ");
+
+        await pool.query(
+          `
+          INSERT INTO work_schedule (
+            work_date,
+            shift
+          )
+          VALUES ($1, $2)
+          `,
+          [workDate, shift]
         );
 
-        continue;
+        count++;
       }
-
-      const workDate = parts[0];
-      const shift = parts.slice(1).join(" ");
-
-      await pool.query(
-        `
-        INSERT INTO work_schedule(
-          work_date,
-          shift
-        )
-        VALUES($1,$2)
-        `,
-        [workDate, shift]
-      );
 
       await replyText(
         event.replyToken,
-        `บันทึกเวรแม่มุกวันที่ ${workDate} เรียบร้อยค่ะ`
+        `บันทึกตารางเวรเรียบร้อย ${count} รายการค่ะ`
       );
 
       continue;
