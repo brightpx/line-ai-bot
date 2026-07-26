@@ -178,6 +178,28 @@ app.post("/webhook", async (req, res) => {
         const workDate = parts[0];
         const shift = parts.slice(1).join(" ");
 
+       const existing = await pool.query(
+        `
+        SELECT id
+        FROM work_schedule
+        WHERE work_date = $1
+        `,
+        [workDate]
+      );
+
+      if (existing.rows.length > 0) {
+
+        await pool.query(
+          `
+          UPDATE work_schedule
+          SET shift = $2
+          WHERE work_date = $1
+          `,
+          [workDate, shift]
+        );
+
+      } else {
+
         await pool.query(
           `
           INSERT INTO work_schedule (
@@ -188,6 +210,8 @@ app.post("/webhook", async (req, res) => {
           `,
           [workDate, shift]
         );
+
+      }
 
         count++;
       }
