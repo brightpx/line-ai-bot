@@ -13,7 +13,27 @@ const pool = new Pool({
     rejectUnauthorized: false
   }
 });
+async function pushText(text) {
 
+  await axios.post(
+    "https://api.line.me/v2/bot/message/push",
+    {
+      to: process.env.LINE_GROUP_ID,
+      messages: [
+        {
+          type: "text",
+          text: text.substring(0, 4000)
+        }
+      ]
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+}
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS memories (
@@ -89,7 +109,94 @@ async function replyText(replyToken, text) {
 app.get("/", (req, res) => {
   res.send("LINE AI Bot is running");
 });
+app.get("/morning-report", async (req, res) => {
 
+  try {
+
+    const workResult = await pool.query(`
+      SELECT shift
+      FROM work_schedule
+      WHERE work_date = CURRENT_DATE
+    `);
+
+    const memoryResult = await pool.query(`
+      SELECT content
+      FROM memories
+      ORDER BY id DESC
+      LIMIT 20
+    `);
+
+    const shift =
+      workResult.rows.length > 0
+        ? workResult.rows[0].shift
+        : "ไม่มีข้อมูลเวร";
+
+    const memoryText =
+      memoryResult.rows
+        .map(x => `- ${x.content}`)
+        .join("\n");
+
+    const completion =
+      await groq.chat.completions.create({
+        model: "openai/gpt-oss-120b",
+        messages: [
+          {
+            role: "system",
+            content: `
+คุณคือพี่เลี้ยงริริญ
+
+สรุปข้อมูลประจำวันแบบ กระชับ อ่านง่าย
+เหมาะสำหรับส่งให้ครอบครัวตอนเช้า
+`
+          },
+          {
+            role: "user",
+            content: `
+ข้อมูลวันนี้
+
+เวรแม่มุก:
+${shift}
+
+
+ช่วยสรุปเป็นข้อความตอนเช้า
+`
+          }
+        ]
+      });
+
+    const summary =
+      completion.choices[0].message.content;
+
+    await axios.post(
+      "https://api.line.me/v2/bot/message/push",
+      {
+        to: process.env.LINE_GROUP_ID,
+        messages: [
+          {
+            type: "text",
+            text: summary.substring(0, 4000)
+          }
+        ]
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    res.send("Morning report sent");
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).send(err.message);
+
+  }
+
+});
 app.post("/webhook", async (req, res) => {
 
   const events = req.body.events || [];
