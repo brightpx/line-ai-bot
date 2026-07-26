@@ -250,6 +250,50 @@ app.post("/webhook", async (req, res) => {
 
       continue;
     }
+    if (userText === "/เช้า") {
+
+      const result = await pool.query(`
+        SELECT work_date, shift
+        FROM work_schedule
+        WHERE work_date = CURRENT_DATE
+      `);
+
+      const shift =
+        result.rows.length > 0
+          ? result.rows[0].shift
+          : "ไม่มีข้อมูลเวร";
+
+      const completion =
+        await groq.chat.completions.create({
+          model: "openai/gpt-oss-120b",
+          messages: [
+            {
+              role: "system",
+              content: `
+    คุณคือพี่เลี้ยงริริญ
+
+    ช่วยสรุปข้อมูลตอนเช้าแบบอบอุ่น
+    ความยาวไม่เกิน 5 บรรทัด
+    `
+            },
+            {
+              role: "user",
+              content: `
+    วันนี้แม่มุกมีเวร ${shift}
+
+    ช่วยสรุปข้อมูลตอนเช้า
+    `
+            }
+          ]
+        });
+
+      await replyText(
+        event.replyToken,
+        completion.choices[0].message.content
+      );
+
+      continue;
+    }
     // ตอบเฉพาะเมื่อเรียกชื่อ อารายา
     if (
       !userText.startsWith("อารายา") &&
