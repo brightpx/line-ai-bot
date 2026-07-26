@@ -5,22 +5,46 @@ const app = express();
 const Groq = require("groq-sdk");
 const fs = require("fs");
 
-const MEMORY_FILE = "memory.json";
+const { Pool } = require("pg");
 
-function loadMemory() {
-  if (!fs.existsSync(MEMORY_FILE)) {
-    return [];
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
   }
+});
 
-  return JSON.parse(
-    fs.readFileSync(MEMORY_FILE, "utf8")
-  );
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS memories (
+      id SERIAL PRIMARY KEY,
+      created_at TIMESTAMP DEFAULT NOW(),
+      content TEXT NOT NULL
+    )
+  `);
 }
 
-function saveMemory(data) {
-  fs.writeFileSync(
-    MEMORY_FILE,
-    JSON.stringify(data, null, 2)
+initDb();
+
+
+async function loadMemory() {
+  const result = await pool.query(`
+    SELECT *
+    FROM memories
+    ORDER BY created_at DESC
+    LIMIT 100
+  `);
+
+  return result.rows;
+}
+
+async function saveMemory(text) {
+  await pool.query(
+    `
+    INSERT INTO memories(content)
+    VALUES($1)
+    `,
+    [text]
   );
 }
 app.use(express.json());
@@ -51,14 +75,7 @@ app.post("/webhook", async (req, res) => {
       const memoryText =
         userText.replace("/จำ ", "").trim();
 
-      const memories = loadMemory();
-
-      memories.push({
-        createdAt: new Date().toISOString(),
-        text: memoryText
-      });
-
-      saveMemory(memories);
+await saveMemory(memoryText);
 
       await axios.post(
         "https://api.line.me/v2/bot/message/reply",
@@ -84,12 +101,12 @@ app.post("/webhook", async (req, res) => {
     }
     if (userText === "/ข้อมูล") {
 
-      const memories = loadMemory();
+      const memories = await loadMemory();
 
       const answer =
         memories.length === 0
           ? "ยังไม่มีข้อมูลที่บันทึกไว้ค่ะ"
-          : memories.map(x => `• ${x.text}`).join("\n");
+          : memories.map(x => `• ${x.content}`).join("\n");
 
       await axios.post(
         "https://api.line.me/v2/bot/message/reply",
@@ -113,12 +130,75 @@ app.post("/webhook", async (req, res) => {
 
       continue;
     }
+    if (userText === "/ล้างข้อมูล") {
+
+      await pool.query(
+        "DELETE FROM memories"
+      );
+
+      await axios.post(
+        "https://api.line.me/v2/bot/message/reply",
+        {
+          replyToken: event.replyToken,
+          messages: [
+            {
+              type: "text",
+              text: "ล้างข้อมูลที่บันทึกไว้ทั้งหมดเรียบร้อยแล้วค่ะ 🗑️"
+            }
+          ]
+        },
+        {
+          headers: {
+            Authorization:
+              `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      continue;
+    }
+    if (userText.startsWith("/ลืม ")) {
+
+    const keyword =
+      userText.replace("/ลืม ", "").trim();
+
+    await pool.query(
+      `
+      DELETE FROM memories
+      WHERE content ILIKE $1
+      `,
+      [`%${keyword}%`]
+    );
+
+    await axios.post(
+      "https://api.line.me/v2/bot/message/reply",
+      {
+        replyToken: event.replyToken,
+        messages: [
+          {
+            type: "text",
+            text: `ลบข้อมูลที่เกี่ยวข้องกับ "${keyword}" เรียบร้อยแล้วค่ะ`
+          }
+        ]
+      },
+      {
+        headers: {
+          Authorization:
+            `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    continue;
+  }
     try {
-      const memories = loadMemory();
+      const memories = await loadMemory();
 
       const memoryText =
         memories
-          .map(x => `- ${x.text}`)
+          .map(x => `- ${x.content}`)
           .join("\n");
       const completion =
       await groq.chat.completions.create({
