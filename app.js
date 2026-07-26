@@ -56,6 +56,28 @@ const groq = new Groq({
 const CHANNEL_ACCESS_TOKEN =
   process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
+async function replyText(replyToken, text) {
+  const prefixed = `อารายา ${text}`;
+  await axios.post(
+    "https://api.line.me/v2/bot/message/reply",
+    {
+      replyToken,
+      messages: [
+        {
+          type: "text",
+          text: prefixed
+        }
+      ]
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+}
+
 app.get("/", (req, res) => {
 res.send("LINE AI Bot is running");
 });
@@ -77,25 +99,7 @@ app.post("/webhook", async (req, res) => {
 
 await saveMemory(memoryText);
 
-      await axios.post(
-        "https://api.line.me/v2/bot/message/reply",
-        {
-          replyToken: event.replyToken,
-          messages: [
-            {
-              type: "text",
-              text: "บันทึกข้อมูลเรียบร้อยค่ะ 💕"
-            }
-          ]
-        },
-        {
-          headers: {
-            Authorization:
-              `Bearer ${CHANNEL_ACCESS_TOKEN}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
+      await replyText(event.replyToken, "บันทึกข้อมูลเรียบร้อยค่ะ 💕");
 
       continue;
     }
@@ -108,25 +112,7 @@ await saveMemory(memoryText);
           ? "ยังไม่มีข้อมูลที่บันทึกไว้ค่ะ"
           : memories.map(x => `• ${x.content}`).join("\n");
 
-      await axios.post(
-        "https://api.line.me/v2/bot/message/reply",
-        {
-          replyToken: event.replyToken,
-          messages: [
-            {
-              type: "text",
-              text: answer.substring(0, 4000)
-            }
-          ]
-        },
-        {
-          headers: {
-            Authorization:
-              `Bearer ${CHANNEL_ACCESS_TOKEN}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
+      await replyText(event.replyToken, answer.substring(0, 4000));
 
       continue;
     }
@@ -136,24 +122,9 @@ await saveMemory(memoryText);
         "DELETE FROM memories"
       );
 
-      await axios.post(
-        "https://api.line.me/v2/bot/message/reply",
-        {
-          replyToken: event.replyToken,
-          messages: [
-            {
-              type: "text",
-              text: "ล้างข้อมูลที่บันทึกไว้ทั้งหมดเรียบร้อยแล้วค่ะ 🗑️"
-            }
-          ]
-        },
-        {
-          headers: {
-            Authorization:
-              `Bearer ${CHANNEL_ACCESS_TOKEN}`,
-            "Content-Type": "application/json"
-          }
-        }
+      await replyText(
+        event.replyToken,
+        "ล้างข้อมูลที่บันทึกไว้ทั้งหมดเรียบร้อยแล้วค่ะ 🗑️"
       );
 
       continue;
@@ -171,24 +142,9 @@ await saveMemory(memoryText);
       [`%${keyword}%`]
     );
 
-    await axios.post(
-      "https://api.line.me/v2/bot/message/reply",
-      {
-        replyToken: event.replyToken,
-        messages: [
-          {
-            type: "text",
-            text: `ลบข้อมูลที่เกี่ยวข้องกับ "${keyword}" เรียบร้อยแล้วค่ะ`
-          }
-        ]
-      },
-      {
-        headers: {
-          Authorization:
-            `Bearer ${CHANNEL_ACCESS_TOKEN}`,
-          "Content-Type": "application/json"
-        }
-      }
+    await replyText(
+      event.replyToken,
+      `ลบข้อมูลที่เกี่ยวข้องกับ "${keyword}" เรียบร้อยแล้วค่ะ`
     );
 
     continue;
@@ -262,25 +218,7 @@ await saveMemory(memoryText);
    const answer =
       completion.choices[0].message.content.substring(0, 4000);
 
-      await axios.post(
-        "https://api.line.me/v2/bot/message/reply",
-        {
-          replyToken: event.replyToken,
-          messages: [
-            {
-              type: "text",
-              text: answer
-            }
-          ]
-        },
-        {
-          headers: {
-            Authorization:
-              `Bearer ${CHANNEL_ACCESS_TOKEN}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
+      await replyText(event.replyToken, answer);
 
     } catch (err) {
       console.error(err);
