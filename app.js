@@ -260,10 +260,10 @@ app.post("/webhook", async (req, res) => {
         `
       );
 
-      const memoryResult = await pool.query(
+     const memoryResult = await pool.query(
         `
         SELECT content
-        FROM memory
+        FROM memories
         ORDER BY id DESC
         LIMIT 20
         `
