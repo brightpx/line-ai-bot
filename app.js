@@ -178,40 +178,40 @@ app.post("/webhook", async (req, res) => {
         const workDate = parts[0];
         const shift = parts.slice(1).join(" ");
 
-       const existing = await pool.query(
-        `
+        const existing = await pool.query(
+          `
         SELECT id
         FROM work_schedule
         WHERE work_date = $1
         `,
-        [workDate]
-      );
+          [workDate]
+        );
 
-      if (existing.rows.length > 0) {
+        if (existing.rows.length > 0) {
 
-        await pool.query(
-          `
+          await pool.query(
+            `
           UPDATE work_schedule
           SET shift = $2
           WHERE work_date = $1
           `,
-          [workDate, shift]
-        );
+            [workDate, shift]
+          );
 
-      } else {
+        } else {
 
-        await pool.query(
-          `
+          await pool.query(
+            `
           INSERT INTO work_schedule (
             work_date,
             shift
           )
           VALUES ($1, $2)
           `,
-          [workDate, shift]
-        );
+            [workDate, shift]
+          );
 
-      }
+        }
 
         count++;
       }
@@ -252,16 +252,32 @@ app.post("/webhook", async (req, res) => {
     }
     if (userText === "/เช้า") {
 
-      const result = await pool.query(`
-        SELECT work_date, shift
+      const workResult = await pool.query(
+        `
+        SELECT shift
         FROM work_schedule
         WHERE work_date = CURRENT_DATE
-      `);
+        `
+      );
+
+      const memoryResult = await pool.query(
+        `
+        SELECT content
+        FROM memory
+        ORDER BY id DESC
+        LIMIT 20
+        `
+      );
 
       const shift =
-        result.rows.length > 0
-          ? result.rows[0].shift
+        workResult.rows.length > 0
+          ? workResult.rows[0].shift
           : "ไม่มีข้อมูลเวร";
+
+      const memoryText =
+        memoryResult.rows
+          .map(x => `- ${x.content}`)
+          .join("\n");
 
       const completion =
         await groq.chat.completions.create({
@@ -270,19 +286,26 @@ app.post("/webhook", async (req, res) => {
             {
               role: "system",
               content: `
-    คุณคือพี่เลี้ยงริริญ
+              คุณคือพี่เลี้ยงริริญ
 
-    ช่วยสรุปข้อมูลตอนเช้าแบบอบอุ่น
-    ความยาวไม่เกิน 5 บรรทัด
-    `
+              ช่วยสรุปข้อมูลประจำวันแบบอบอุ่น
+              กระชับ อ่านง่าย
+              และเหมาะสำหรับส่งตอนเช้า
+              `
             },
             {
               role: "user",
               content: `
-    วันนี้แม่มุกมีเวร ${shift}
+              ข้อมูลวันนี้
 
-    ช่วยสรุปข้อมูลตอนเช้า
-    `
+              เวรแม่มุก:
+              ${shift}
+
+              ข้อมูลเพิ่มเติมจากความจำ:
+              ${memoryText}
+
+              ช่วยสรุปข้อมูลตอนเช้า
+`
             }
           ]
         });
