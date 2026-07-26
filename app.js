@@ -209,11 +209,11 @@ app.post("/webhook", async (req, res) => {
         result.rows.length === 0
           ? "ยังไม่มีตารางเวรค่ะ"
           : result.rows
-              .map(
-                x =>
-                  `${x.work_date.toISOString().slice(0,10)} : ${x.shift}`
-              )
-              .join("\n");
+            .map(
+              x =>
+                `${x.work_date.toISOString().slice(0, 10)} : ${x.shift}`
+            )
+            .join("\n");
 
       await replyText(
         event.replyToken,
@@ -249,6 +249,22 @@ app.post("/webhook", async (req, res) => {
       const memoryText =
         memories
           .map(x => `- ${x.content}`)
+          .join("\n");
+
+      const scheduleResult =
+        await pool.query(`
+    SELECT *
+    FROM work_schedule
+    ORDER BY work_date
+    LIMIT 30
+  `);
+
+      const scheduleText =
+        scheduleResult.rows
+          .map(
+            x =>
+              `${x.work_date.toISOString().slice(0, 10)} : ${x.shift}`
+          )
           .join("\n");
       const completion =
         await groq.chat.completions.create({
@@ -292,10 +308,18 @@ app.post("/webhook", async (req, res) => {
             {
               role: "system",
               content: `
-    ข้อมูลที่บันทึกเพิ่มเติมจากครอบครัว
+              ข้อมูลที่บันทึกเพิ่มเติมจากครอบครัว
 
-    ${memoryText}
-    `
+              ${memoryText}
+              `
+            },
+            {
+              role: "system",
+              content: `
+              ตารางเวรของแม่มุก
+
+              ${scheduleText}
+              `
             },
             {
               role: "user",
