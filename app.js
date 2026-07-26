@@ -154,7 +154,7 @@ app.get("/morning-report", async (req, res) => {
             content: `
 ข้อมูลวันนี้
 
-เวรแม่มุก:
+เวรแม่มุกเลิกงาน:
 ${shift}
 
 
