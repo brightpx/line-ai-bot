@@ -22,6 +22,14 @@ async function initDb() {
       content TEXT NOT NULL
     )
   `);
+  await pool.query(`
+  CREATE TABLE IF NOT EXISTS work_schedule (
+    id SERIAL PRIMARY KEY,
+    work_date DATE NOT NULL,
+    shift TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+  )
+`);
 }
 
 initDb();
@@ -79,7 +87,7 @@ async function replyText(replyToken, text) {
 }
 
 app.get("/", (req, res) => {
-res.send("LINE AI Bot is running");
+  res.send("LINE AI Bot is running");
 });
 
 app.post("/webhook", async (req, res) => {
@@ -131,25 +139,90 @@ app.post("/webhook", async (req, res) => {
     }
     if (userText.startsWith("/ลืม ")) {
 
-    const keyword =
-      userText.replace("/ลืม ", "").trim();
+      const keyword =
+        userText.replace("/ลืม ", "").trim();
 
-    await pool.query(
-      `
+      await pool.query(
+        `
       DELETE FROM memories
       WHERE content ILIKE $1
       `,
-      [`%${keyword}%`]
-    );
+        [`%${keyword}%`]
+      );
 
-    await replyText(
-      event.replyToken,
-      `ลบข้อมูลที่เกี่ยวข้องกับ "${keyword}" เรียบร้อยแล้วค่ะ`
-    );
+      await replyText(
+        event.replyToken,
+        `ลบข้อมูลที่เกี่ยวข้องกับ "${keyword}" เรียบร้อยแล้วค่ะ`
+      );
 
-    continue;
-  }
-  // ตอบเฉพาะเมื่อเรียกชื่อ อารายา
+      continue;
+    }
+    if (userText.startsWith("/เวร ")) {
+
+      const data =
+        userText.replace("/เวร ", "").trim();
+
+      const parts = data.split(" ");
+
+      if (parts.length < 2) {
+
+        await replyText(
+          event.replyToken,
+          "รูปแบบ: /เวร YYYY-MM-DD ชื่อเวร"
+        );
+
+        continue;
+      }
+
+      const workDate = parts[0];
+      const shift = parts.slice(1).join(" ");
+
+      await pool.query(
+        `
+        INSERT INTO work_schedule(
+          work_date,
+          shift
+        )
+        VALUES($1,$2)
+        `,
+        [workDate, shift]
+      );
+
+      await replyText(
+        event.replyToken,
+        `บันทึกเวรแม่มุกวันที่ ${workDate} เรียบร้อยค่ะ`
+      );
+
+      continue;
+    }
+    if (userText === "/ตารางเวร") {
+
+      const result =
+        await pool.query(`
+          SELECT *
+          FROM work_schedule
+          ORDER BY work_date
+          LIMIT 30
+        `);
+
+      const answer =
+        result.rows.length === 0
+          ? "ยังไม่มีตารางเวรค่ะ"
+          : result.rows
+              .map(
+                x =>
+                  `${x.work_date.toISOString().slice(0,10)} : ${x.shift}`
+              )
+              .join("\n");
+
+      await replyText(
+        event.replyToken,
+        answer
+      );
+
+      continue;
+    }
+    // ตอบเฉพาะเมื่อเรียกชื่อ อารายา
     if (
       !userText.startsWith("อารายา") &&
       !userText.startsWith("อารยา")
@@ -178,11 +251,11 @@ app.post("/webhook", async (req, res) => {
           .map(x => `- ${x.content}`)
           .join("\n");
       const completion =
-      await groq.chat.completions.create({
-     messages: [
-    {
-      role: "system",
-      content: `
+        await groq.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: `
       คุณคือ "พี่เลี้ยงริริญ"
 
       ข้อมูลครอบครัว:
@@ -215,29 +288,29 @@ app.post("/webhook", async (req, res) => {
       - ทุกคนรักและเอ็นดูริริญมาก
       - ครอบครัวให้ความสำคัญกับความรัก ความอบอุ่น การศึกษา และความปลอดภัย
       `
-      },
-      {
-        role: "system",
-        content: `
+            },
+            {
+              role: "system",
+              content: `
     ข้อมูลที่บันทึกเพิ่มเติมจากครอบครัว
 
     ${memoryText}
     `
-      },
-      {
-        role: "user",
-        content: userText
-      }
-    ],
-        model: "openai/gpt-oss-120b",
-        temperature: 0.7,
-        max_completion_tokens: 1024,
-        top_p: 0.9
+            },
+            {
+              role: "user",
+              content: userText
+            }
+          ],
+          model: "openai/gpt-oss-120b",
+          temperature: 0.7,
+          max_completion_tokens: 1024,
+          top_p: 0.9
 
-      });
+        });
 
-   const answer =
-      completion.choices[0].message.content.substring(0, 4000);
+      const answer =
+        completion.choices[0].message.content.substring(0, 4000);
 
       await replyText(event.replyToken, answer);
 
