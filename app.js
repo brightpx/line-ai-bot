@@ -370,7 +370,7 @@ app.post("/webhook", async (req, res) => {
         `
       );
 
-     const memoryResult = await pool.query(
+      const memoryResult = await pool.query(
         `
         SELECT content
         FROM memories
@@ -538,10 +538,20 @@ app.post("/webhook", async (req, res) => {
 
         });
 
+      console.log(
+        JSON.stringify(completion, null, 2)
+      );
+      console.log(
+        "CONTENT =",
+        completion?.choices?.[0]?.message?.content
+      );
       const answer =
-        completion.choices[0].message.content.substring(0, 4000);
+        completion?.choices?.[0]?.message?.content?.trim();
 
-      await replyText(event.replyToken, answer);
+      await replyText(
+        event.replyToken,
+        answer || "ขออภัยค่ะ อารายายังไม่สามารถตอบได้ในขณะนี้"
+      );
 
     } catch (err) {
       console.error(err);
