@@ -533,7 +533,7 @@ app.post("/webhook", async (req, res) => {
           ],
           model: "openai/gpt-oss-120b",
           temperature: 0.7,
-          max_completion_tokens: 1024,
+          max_completion_tokens: 4096,
           top_p: 0.9
 
         });
