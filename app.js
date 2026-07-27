@@ -340,7 +340,7 @@ app.post("/webhook", async (req, res) => {
           SELECT *
           FROM work_schedule
           ORDER BY work_date
-          LIMIT 30
+          LIMIT 70
         `);
 
       const answer =
@@ -461,7 +461,7 @@ app.post("/webhook", async (req, res) => {
     SELECT *
     FROM work_schedule
     ORDER BY work_date
-    LIMIT 30
+    LIMIT 70
   `);
 
       const scheduleText =
