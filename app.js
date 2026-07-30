@@ -109,6 +109,9 @@ async function replyText(replyToken, text) {
 app.get("/", (req, res) => {
   res.send("LINE AI Bot is running");
 });
+app.get("/ping", (req, res) => {
+  res.status(200).send("pong");
+});
 app.get("/morning-report", async (req, res) => {
 
   try {
