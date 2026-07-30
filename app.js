@@ -396,12 +396,6 @@ app.post("/webhook", async (req, res) => {
         ? tomorrowResult.rows[0].shift
         : "ไม่มีข้อมูลเวร";
 
-      const memoryResult = await pool.query(`
-        SELECT content
-        FROM memories
-        ORDER BY id DESC
-        LIMIT 20
-      `);
       const memoryResult = await pool.query(
         `
         SELECT content
