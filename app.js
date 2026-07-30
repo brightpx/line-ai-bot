@@ -391,6 +391,12 @@ app.post("/webhook", async (req, res) => {
         WHERE work_date = CURRENT_DATE
         `
       );
+      const tomorrowResult = await pool.query(`
+        SELECT shift
+        FROM work_schedule
+        WHERE work_date = CURRENT_DATE + INTERVAL '1 day'
+      `);
+
       const tomorrowShift =
         tomorrowResult.rows.length > 0
         ? tomorrowResult.rows[0].shift
