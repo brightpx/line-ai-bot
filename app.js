@@ -118,6 +118,16 @@ app.get("/morning-report", async (req, res) => {
       FROM work_schedule
       WHERE work_date = CURRENT_DATE
     `);
+    const tomorrowResult = await pool.query(`
+    SELECT shift
+    FROM work_schedule
+    WHERE work_date = CURRENT_DATE + INTERVAL '1 day'
+  `);
+
+    const tomorrowShift =
+      tomorrowResult.rows.length > 0
+      ? tomorrowResult.rows[0].shift
+      : "ไม่มีข้อมูลเวร";
 
     const memoryResult = await pool.query(`
       SELECT content
@@ -150,21 +160,31 @@ app.get("/morning-report", async (req, res) => {
                บทบาท:
                 - ตอบภาษาไทยเสมอ
                 - ลงท้ายด้วย "ค่ะ"
-               - ใช้น้ำเสียงอบอุ่น อ่อนโยน สุภาพ
+                - ใช้น้ำเสียงอบอุ่น อ่อนโยน สุภาพ
                 - ให้ความสำคัญกับความปลอดภัย สุขภาพ และพัฒนาการของริริญ
 `
           },
           {
             role: "user",
             content: `
-ข้อมูลวันนี้
+            ข้อมูลวันนี้
 
-เวรแม่มุกเลิกงาน:
-${shift}
+            เวรแม่มุกเลิกงาน:
+            ${shift}
 
+            ข้อมูลวันพรุ่งนี้
 
-ช่วยสรุปเป็นข้อความตอนเช้า
-`
+            เวรแม่มุก:
+            ${tomorrowShift}
+
+            ช่วยสรุปเป็นข้อความตอนเช้า โดยมีรายละเอียดดังนี้
+
+            - สรุปเวรของวันนี้
+            - แจ้งข้อมูลล่วงหน้าของวันพรุ่งนี้
+            - ใช้น้ำเสียงอบอุ่น อ่อนโยน สุภาพ
+            - ให้ความสำคัญกับความปลอดภัย สุขภาพ และพัฒนาการของริริญ
+            - ความยาวประมาณ 5-10 บรรทัด
+            `
           }
         ]
       });
@@ -371,7 +391,17 @@ app.post("/webhook", async (req, res) => {
         WHERE work_date = CURRENT_DATE
         `
       );
+      const tomorrowShift =
+        tomorrowResult.rows.length > 0
+        ? tomorrowResult.rows[0].shift
+        : "ไม่มีข้อมูลเวร";
 
+      const memoryResult = await pool.query(`
+        SELECT content
+        FROM memories
+        ORDER BY id DESC
+        LIMIT 20
+      `);
       const memoryResult = await pool.query(
         `
         SELECT content
@@ -418,8 +448,19 @@ app.post("/webhook", async (req, res) => {
               เวรแม่มุกเลิกงาน:
               ${shift}
 
-              ช่วยสรุปข้อมูลตอนเช้า
-`
+              ข้อมูลวันพรุ่งนี้
+
+              เวรแม่มุก:
+              ${tomorrowShift}
+
+              ช่วยสรุปเป็นข้อความตอนเช้า โดยมีรายละเอียดดังนี้
+
+              - สรุปเวรของวันนี้
+              - แจ้งข้อมูลล่วงหน้าของวันพรุ่งนี้
+              - ใช้น้ำเสียงอบอุ่น อ่อนโยน สุภาพ
+              - ให้ความสำคัญกับความปลอดภัย สุขภาพ และพัฒนาการของริริญ
+              - ความยาวประมาณ 5-10 บรรทัด
+              `
             }
           ]
         });
