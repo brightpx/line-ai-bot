@@ -18,15 +18,23 @@ app.get("/", (req, res) => {
     <html>
       <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>LINE AI Bot</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-WZ/paXb5+X0Vv9qG8em7P6H/1v7Rd0G8m0NQ5Sj72D8O+3yP3o5G3Nj6fJ4F6BzK" crossorigin="anonymous">
       </head>
-      <body>
-        <h1>LINE AI Bot</h1>
-        <p>ระบบทำงานเรียบร้อย</p>
-        <ul>
-          <li><a href="/dashboard">Dashboard ตารางเวร</a></li>
-          <li><a href="/ping">Ping</a></li>
-        </ul>
+      <body class="bg-light">
+        <div class="container py-5">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h1 class="card-title">LINE AI Bot</h1>
+              <p class="card-text">ระบบทำงานเรียบร้อย</p>
+              <div class="list-group">
+                <a href="/dashboard" class="list-group-item list-group-item-action">Dashboard ตารางเวร</a>
+                <a href="/ping" class="list-group-item list-group-item-action">Ping</a>
+              </div>
+            </div>
+          </div>
+        </div>
       </body>
     </html>
   `);
@@ -35,64 +43,131 @@ app.get("/", (req, res) => {
 app.get("/dashboard", async (req, res) => {
   try {
     const schedule = await getAllWorkSchedule();
+    const items = schedule.map(item => ({
+      date: item.work_date.toISOString().slice(0, 10),
+      shift: item.shift,
+      category: getShiftCategory(item.shift),
+      createdAt: new Date(item.created_at).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })
+    }));
 
-    const getRowClass = shift => {
-      const value = shift.toLowerCase();
-      if (value.includes("เช้า") || value.includes("morning") || value.includes("day")) return "shift-morning";
-      if (value.includes("บ่าย") || value.includes("afternoon")) return "shift-afternoon";
-      if (value.includes("สองทุ่ม") || value.includes("evening")) return "shift-evening";
-      if (value.includes("กลางคืน") || value.includes("ดึก") || value.includes("night")) return "shift-night";
-      if (value.includes("พัก") || value.includes("หยุด") || value.includes("off")) return "shift-off";
-      return "shift-default";
-    };
+    const counts = items.reduce((acc, item) => {
+      acc[item.category] = (acc[item.category] || 0) + 1;
+      return acc;
+    }, {
+      morning: 0,
+      afternoon: 0,
+      evening: 0,
+      night: 0,
+      off: 0,
+      other: 0
+    });
 
-    const rows = schedule
-      .map(item => {
-        const rowClass = getRowClass(item.shift);
-        return `
-        <tr class="${rowClass}">
-          <td>${item.work_date.toISOString().slice(0, 10)}</td>
-          <td>${item.shift}</td>
-          <td>${new Date(item.created_at).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</td>
-        </tr>
-      `;
-      })
-      .join("");
+    const chartLabels = ["เช้า", "บ่าย", "เย็น", "กลางคืน", "พัก/หยุด", "อื่น ๆ"];
+    const chartData = [counts.morning, counts.afternoon, counts.evening, counts.night, counts.off, counts.other];
 
     res.send(`
       <html>
         <head>
           <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
           <title>Dashboard ตารางเวร</title>
+          <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-WZ/paXb5+X0Vv9qG8em7P6H/1v7Rd0G8m0NQ5Sj72D8O+3yP3o5G3Nj6fJ4F6BzK" crossorigin="anonymous">
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
           <style>
-            body { font-family: Arial, sans-serif; margin: 24px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-            th { background: #f4f4f4; }
-            caption { font-size: 1.4em; margin-bottom: 12px; }
-            .shift-morning { background: #e6f7ff; }
-            .shift-afternoon { background: #fff7e6; }
-            .shift-evening { background: #f9e6ff; }
-            .shift-night { background: #e6e8ff; }
-            .shift-off { background: #e8f5e9; }
-            .shift-default { background: #f7f7f7; }
+            body { background: #f8f9fa; }
+            .chart-card { min-height: 380px; }
           </style>
         </head>
         <body>
-          <a href="/">← กลับ</a>
-          <table>
-            <caption>ตารางเวร</caption>
-            <thead>
-              <tr>
-                <th>วันที่</th>
-                <th>เวร</th>
-                <th>บันทึกเมื่อ</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows || `<tr><td colspan="3">ยังไม่มีตารางเวร</td></tr>`}
-            </tbody>
-          </table>
+          <div class="container py-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <div>
+                <h1 class="h3">Dashboard ตารางเวร</h1>
+                <p class="text-muted mb-0">ดูสรุปเวรพร้อมกราฟและตารางข้อมูล</p>
+              </div>
+              <a href="/" class="btn btn-outline-secondary">กลับหน้าแรก</a>
+            </div>
+
+            <div class="row g-4 mb-4">
+              <div class="col-lg-4">
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <h5 class="card-title">รายการทั้งหมด</h5>
+                    <p class="display-6 mb-0">${items.length}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-8">
+                <div class="card shadow-sm chart-card">
+                  <div class="card-body">
+                    <h5 class="card-title">สัดส่วนประเภทเวร</h5>
+                    <canvas id="shiftChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <h5 class="card-title mb-3">ตารางเวร</h5>
+                <div class="table-responsive">
+                  <table class="table table-striped table-hover align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th>วันที่</th>
+                        <th>เวร</th>
+                        <th>ประเภท</th>
+                        <th>บันทึกเมื่อ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${items.length === 0 ? `
+                        <tr><td colspan="4" class="text-center py-4">ยังไม่มีตารางเวร</td></tr>
+                      ` : items.map(item => `
+                        <tr>
+                          <td>${item.date}</td>
+                          <td>${item.shift}</td>
+                          <td>${item.category === "morning" ? "เช้า" : item.category === "afternoon" ? "บ่าย" : item.category === "evening" ? "เย็น" : item.category === "night" ? "กลางคืน" : item.category === "off" ? "พัก/หยุด" : "อื่น ๆ"}</td>
+                          <td>${item.createdAt}</td>
+                        </tr>
+                      `).join("")}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <script>
+            const chartData = ${JSON.stringify(chartData)};
+            const chartLabels = ${JSON.stringify(chartLabels)};
+            const ctx = document.getElementById('shiftChart');
+            new Chart(ctx, {
+              type: 'doughnut',
+              data: {
+                labels: chartLabels,
+                datasets: [{
+                  data: chartData,
+                  backgroundColor: ['#0d6efd', '#ffc107', '#6610f2', '#0d6efd80', '#198754', '#6c757d'],
+                  borderColor: '#fff',
+                  borderWidth: 2
+                }]
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'bottom'
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: context => `${context.label}: ${context.parsed}`
+                    }
+                  }
+                }
+              }
+            });
+          </script>
         </body>
       </html>
     `);
@@ -101,6 +176,16 @@ app.get("/dashboard", async (req, res) => {
     res.status(500).send("ไม่สามารถแสดง dashboard ได้");
   }
 });
+
+function getShiftCategory(shift) {
+  const value = shift.toLowerCase();
+  if (value.includes("เช้า") || value.includes("morning")) return "morning";
+  if (value.includes("บ่าย") || value.includes("afternoon")) return "afternoon";
+  if (value.includes("เย็น") || value.includes("evening")) return "evening";
+  if (value.includes("กลางคืน") || value.includes("ดึก") || value.includes("night")) return "night";
+  if (value.includes("พัก") || value.includes("หยุด") || value.includes("off")) return "off";
+  return "other";
+}
 
 app.get("/ping", (req, res) => {
   res.status(200).send("pong");
