@@ -388,6 +388,18 @@ app.post("/webhook", async (req, res) => {
       continue;
     }
 
+    if (userText.startsWith("/ลบวันหยุด")) {
+      const holidayDate = userText.replace("/ลบวันหยุด", "").trim();
+      if (!holidayDate) {
+        await replyText(event.replyToken, "กรุณาระบุวันที่ที่ต้องการลบ เช่น /ลบวันหยุด 2026-08-01");
+        continue;
+      }
+
+      await deleteCaregiverHolidayByDate(holidayDate);
+      await replyText(event.replyToken, `ลบวันหยุดพี่เลี้ยงวันที่ ${holidayDate} เรียบร้อยแล้วค่ะ`);
+      continue;
+    }
+
     if (userText === "/ตารางเวร") {
       const result = await getAllWorkSchedule();
       const answer = result.length === 0
