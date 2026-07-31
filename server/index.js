@@ -1,8 +1,10 @@
 ﻿const express = require("express");
+const path = require("path");
 
 const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getTodayShift, getTomorrowShift } = require("./db");
 const { replyText, pushText } = require("./lineApi");
 const { createMorningSummary, createArayaResponse } = require("./ai");
+const getShiftCategory = require("../shared/shiftCategory");
 
 const app = express();
 
@@ -13,40 +15,20 @@ if (!LINE_GROUP_ID) {
 
 app.use(express.json());
 
+app.use(express.static(path.join(__dirname, "..", "web")));
+
 app.get("/", (req, res) => {
-  res.send(`
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>LINE AI Bot</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-WZ/paXb5+X0Vv9qG8em7P6H/1v7Rd0G8m0NQ5Sj72D8O+3yP3o5G3Nj6fJ4F6BzK" crossorigin="anonymous">
-      </head>
-      <body class="bg-light">
-        <div class="container py-5">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h1 class="card-title">LINE AI Bot</h1>
-              <p class="card-text">ระบบทำงานเรียบร้อย</p>
-              <div class="list-group">
-                <a href="/dashboard" class="list-group-item list-group-item-action">Dashboard ตารางเวร</a>
-                <a href="/ping" class="list-group-item list-group-item-action">Ping</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </body>
-    </html>
-  `);
+  res.sendFile(path.join(__dirname, "..", "web", "dashboard.html"));
 });
 
-app.get("/dashboard", async (req, res) => {
+app.get("/api/schedule", async (req, res) => {
   try {
     const schedule = await getAllWorkSchedule();
     const items = schedule.map(item => ({
       date: item.work_date.toISOString().slice(0, 10),
       shift: item.shift,
       category: getShiftCategory(item.shift),
+      categoryLabel: getShiftCategory(item.shift) === "morning" ? "เช้า" : getShiftCategory(item.shift) === "afternoon" ? "บ่าย" : getShiftCategory(item.shift) === "evening" ? "เย็น" : getShiftCategory(item.shift) === "night" ? "กลางคืน" : getShiftCategory(item.shift) === "off" ? "พัก/หยุด" : "อื่น ๆ",
       createdAt: new Date(item.created_at).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })
     }));
 
@@ -62,130 +44,16 @@ app.get("/dashboard", async (req, res) => {
       other: 0
     });
 
-    const chartLabels = ["เช้า", "บ่าย", "เย็น", "กลางคืน", "พัก/หยุด", "อื่น ๆ"];
-    const chartData = [counts.morning, counts.afternoon, counts.evening, counts.night, counts.off, counts.other];
-
-    res.send(`
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <title>Dashboard ตารางเวร</title>
-          <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-WZ/paXb5+X0Vv9qG8em7P6H/1v7Rd0G8m0NQ5Sj72D8O+3yP3o5G3Nj6fJ4F6BzK" crossorigin="anonymous">
-          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-          <style>
-            body { background: #f8f9fa; }
-            .chart-card { min-height: 380px; }
-          </style>
-        </head>
-        <body>
-          <div class="container py-5">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-              <div>
-                <h1 class="h3">Dashboard ตารางเวร</h1>
-                <p class="text-muted mb-0">ดูสรุปเวรพร้อมกราฟและตารางข้อมูล</p>
-              </div>
-              <a href="/" class="btn btn-outline-secondary">กลับหน้าแรก</a>
-            </div>
-
-            <div class="row g-4 mb-4">
-              <div class="col-lg-4">
-                <div class="card shadow-sm">
-                  <div class="card-body">
-                    <h5 class="card-title">รายการทั้งหมด</h5>
-                    <p class="display-6 mb-0">${items.length}</p>
-                  </div>
-                </div>
-              </div>
-              <div class="col-lg-8">
-                <div class="card shadow-sm chart-card">
-                  <div class="card-body">
-                    <h5 class="card-title">สัดส่วนประเภทเวร</h5>
-                    <canvas id="shiftChart"></canvas>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card shadow-sm">
-              <div class="card-body">
-                <h5 class="card-title mb-3">ตารางเวร</h5>
-                <div class="table-responsive">
-                  <table class="table table-striped table-hover align-middle">
-                    <thead class="table-light">
-                      <tr>
-                        <th>วันที่</th>
-                        <th>เวร</th>
-                        <th>ประเภท</th>
-                        <th>บันทึกเมื่อ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${items.length === 0 ? `
-                        <tr><td colspan="4" class="text-center py-4">ยังไม่มีตารางเวร</td></tr>
-                      ` : items.map(item => `
-                        <tr>
-                          <td>${item.date}</td>
-                          <td>${item.shift}</td>
-                          <td>${item.category === "morning" ? "เช้า" : item.category === "afternoon" ? "บ่าย" : item.category === "evening" ? "เย็น" : item.category === "night" ? "กลางคืน" : item.category === "off" ? "พัก/หยุด" : "อื่น ๆ"}</td>
-                          <td>${item.createdAt}</td>
-                        </tr>
-                      `).join("")}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <script>
-            const chartData = ${JSON.stringify(chartData)};
-            const chartLabels = ${JSON.stringify(chartLabels)};
-            const ctx = document.getElementById('shiftChart');
-            new Chart(ctx, {
-              type: 'doughnut',
-              data: {
-                labels: chartLabels,
-                datasets: [{
-                  data: chartData,
-                  backgroundColor: ['#0d6efd', '#ffc107', '#6610f2', '#0d6efd80', '#198754', '#6c757d'],
-                  borderColor: '#fff',
-                  borderWidth: 2
-                }]
-              },
-              options: {
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: 'bottom'
-                  },
-                  tooltip: {
-                    callbacks: {
-                      label: context => context.label + ': ' + context.parsed
-                    }
-                  }
-                }
-              }
-            });
-          </script>
-        </body>
-      </html>
-    `);
+    res.json({ items, counts });
   } catch (err) {
     console.error(err);
-    res.status(500).send("ไม่สามารถแสดง dashboard ได้");
+    res.status(500).json({ error: "ไม่สามารถดึงข้อมูลตารางเวรได้" });
   }
 });
 
-function getShiftCategory(shift) {
-  const value = shift.toLowerCase();
-  if (value.includes("เช้า") || value.includes("morning")) return "morning";
-  if (value.includes("บ่าย") || value.includes("afternoon") || value.includes("บ่ายสี่")) return "afternoon";
-  if (value.includes("สองทุ่ม") || value.includes("เย็น") || value.includes("evening")) return "evening";
-  if (value.includes("กลางคืน") || value.includes("ดึก") || value.includes("night")) return "night";
-  if (value.includes("พัก") || value.includes("หยุด") || value.includes("off")) return "off";
-  return "other";
-}
+app.get("/dashboard", (req, res) => {
+  res.redirect("/");
+});
 
 app.get("/ping", (req, res) => {
   res.status(200).send("pong");
