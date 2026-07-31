@@ -240,7 +240,15 @@
 
       async function initDashboard() {
         const response = await fetch('/api/schedule');
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API /api/schedule failed ${response.status}: ${errorText}`);
+        }
+
         const data = await response.json();
+        if (!data || typeof data.counts !== 'object') {
+          throw new Error('Invalid schedule response format');
+        }
 
         const counts = data.counts;
         const totalCount = document.getElementById('totalCount');
@@ -256,6 +264,10 @@
         const chartLabels = ['เช้า', 'บ่าย', 'เย็น', 'กลางคืน', 'พัก/หยุด', 'อื่น ๆ'];
 
         const ctx = document.getElementById('shiftChart');
+        if (typeof Chart === 'undefined') {
+          throw new Error('Chart.js is not loaded');
+        }
+
         if (window.shiftChart) {
           window.shiftChart.data.datasets[0].data = chartData;
           window.shiftChart.update();
@@ -302,7 +314,7 @@
         initDashboard().catch(err => {
           document.getElementById('scheduleTableBody').innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">ไม่สามารถโหลดข้อมูลได้</td></tr>`;
           document.getElementById('loaderRing').style.display = 'none';
-          document.getElementById('statusText').textContent = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+          document.getElementById('statusText').textContent = `เกิดข้อผิดพลาด: ${err.message}`;
           console.error(err);
         });
       });
