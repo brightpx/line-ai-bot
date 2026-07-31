@@ -63,6 +63,57 @@
         font-size: 0.85rem;
       }
 
+      .calendar-legend span {
+        font-size: 0.85rem;
+      }
+
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      .calendar-day {
+        min-height: 120px;
+        border: 1px solid #dee2e6;
+        border-radius: 1rem;
+        padding: 0.85rem;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .calendar-day.header {
+        background: #f8f9fa;
+        font-weight: 700;
+        text-align: center;
+        border-color: #e9ecef;
+      }
+
+      .calendar-day.today {
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.16);
+      }
+
+      .calendar-day.holiday {
+        background: #fff5f8;
+        border-color: #f8c1d7;
+      }
+
+      .calendar-day.schedule {
+        background: #e7f5ff;
+        border-color: #b6d4fe;
+      }
+
+      .calendar-day .date-number {
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .calendar-day .badge {
+        font-size: 0.7rem;
+      }
+
       .fade-up {
         opacity: 0;
         transform: translateY(18px);
@@ -247,6 +298,27 @@
           </div>
         </div>
       </div>
+      <div class="row g-4 mt-3">
+        <div class="col-12">
+          <div class="card table-card fade-up delay-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 class="card-title mb-1">ปฏิทินเวรรายเดือน</h5>
+                  <p class="text-muted mb-0">ดูเวรและวันหยุดในรูปแบบปฏิทิน</p>
+                </div>
+              </div>
+              <div class="calendar-legend d-flex flex-wrap gap-2 mb-3">
+                <span class="badge bg-primary">เวร</span>
+                <span class="badge bg-danger">วันหยุดนักขัตฤกษ์</span>
+                <span class="badge bg-info text-dark">วันหยุดธนาคาร</span>
+                <span class="badge bg-success">วันปัจจุบัน</span>
+              </div>
+              <div id="calendarGrid" class="calendar-grid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -284,6 +356,69 @@
         }
         updateMonthLabel();
         loadDashboard();
+      }
+
+      function renderCalendar(items, holidays, year, month) {
+        const calendarGrid = document.getElementById('calendarGrid');
+        if (!calendarGrid) return;
+
+        const dayNames = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+        const firstDay = new Date(year, month - 1, 1).getDay();
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const holidayMap = Object.fromEntries((holidays || []).map(h => [h.date, h]));
+        const scheduleMap = Object.fromEntries((items || []).map(i => [i.date, i]));
+        const todayKey = new Date().toISOString().slice(0, 10);
+
+        calendarGrid.innerHTML = '';
+        dayNames.forEach(day => {
+          const headerCell = document.createElement('div');
+          headerCell.className = 'calendar-day header';
+          headerCell.textContent = day;
+          calendarGrid.appendChild(headerCell);
+        });
+
+        for (let blank = 0; blank < firstDay; blank += 1) {
+          const emptyCell = document.createElement('div');
+          emptyCell.className = 'calendar-day';
+          calendarGrid.appendChild(emptyCell);
+        }
+
+        for (let date = 1; date <= daysInMonth; date += 1) {
+          const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+          const holiday = holidayMap[dateKey];
+          const schedule = scheduleMap[dateKey];
+          const cell = document.createElement('div');
+          const classes = ['calendar-day'];
+          if (dateKey === todayKey) classes.push('today');
+          if (holiday) classes.push('holiday');
+          if (schedule) classes.push('schedule');
+          cell.className = classes.join(' ');
+
+          const badges = [];
+          if (holiday) {
+            badges.push(`<span class="badge ${holiday.type === 'bank' ? 'bg-info text-dark' : 'bg-danger'}">${holiday.typeLabel}</span>`);
+          }
+          if (schedule) {
+            badges.push(`<span class="badge bg-primary">${schedule.categoryLabel}</span>`);
+          }
+
+          cell.innerHTML = `
+            <div>
+              <div class="date-number">${date}</div>
+              ${holiday ? `<div class="small text-danger mb-1">${holiday.name}</div>` : ''}
+            </div>
+            ${badges.length ? `<div class="d-flex flex-column gap-1">${badges.join('')}</div>` : ''}
+          `;
+          calendarGrid.appendChild(cell);
+        }
+
+        const totalCells = firstDay + daysInMonth;
+        const trailing = (7 - (totalCells % 7)) % 7;
+        for (let i = 0; i < trailing; i += 1) {
+          const emptyCell = document.createElement('div');
+          emptyCell.className = 'calendar-day';
+          calendarGrid.appendChild(emptyCell);
+        }
       }
 
       function animateValue(element, start, end, duration) {
@@ -346,6 +481,8 @@
 
         document.getElementById('loaderRing').style.display = 'none';
         document.getElementById('statusText').textContent = 'อัปเดตข้อมูลเรียบร้อยแล้ว';
+
+        renderCalendar(data.items, holidays, year, month);
 
         const chartData = [counts.morning, counts.afternoon, counts.evening, counts.night, counts.off, counts.other];
         const chartLabels = ['เช้า', 'บ่าย', 'เย็น', 'กลางคืน', 'พัก/หยุด', 'อื่น ๆ'];
