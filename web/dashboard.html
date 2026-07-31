@@ -164,6 +164,57 @@
         border-bottom-left-radius: 0.4rem;
       }
 
+      .chat-popup {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        width: min(360px, 95vw);
+        z-index: 1080;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.75rem;
+      }
+
+      .chat-window {
+        width: 100%;
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 360px;
+      }
+
+      .chat-window.hidden {
+        display: none !important;
+      }
+
+      .chat-header {
+        background: #0d6efd;
+        color: #fff;
+      }
+
+      .chat-body {
+        background: #f8f9fa;
+        min-height: 220px;
+        max-height: 260px;
+        overflow-y: auto;
+      }
+
+      .chat-footer {
+        background: #fff;
+      }
+
+      .chat-toggle-btn {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+        border: none;
+      }
+
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
@@ -357,20 +408,31 @@
                   <p class="text-muted mb-0">ถามอารายาเกี่ยวกับตารางเวรหรือข้อมูลความทรงจำ</p>
                 </div>
               </div>
-              <div id="chatMessages" class="d-flex flex-column border rounded-3 p-3 mb-3" style="min-height:260px; max-height:340px; overflow-y:auto; background:#f8f9fa;"></div>
-              <div class="row g-2">
-                <div class="col-md-9">
-                  <textarea id="chatInput" class="form-control" rows="3" placeholder="พิมพ์ข้อความถึงอารายา..."></textarea>
-                </div>
-                <div class="col-md-3 d-grid">
-                  <button id="chatSendBtn" class="btn btn-primary h-100">ส่งข้อความ</button>
-                </div>
-              </div>
-              <div class="text-muted small mt-2" id="chatStatus">พร้อมใช้งาน</div>
+              <p class="text-muted">แชทอยู่ในปุ่มมุมขวาล่างค่า</p>
             </div>
           </div>
         </div>
       </div>
+    </div>
+    <div id="chatPopup" class="chat-popup">
+      <div id="chatWindow" class="chat-window hidden fade-up delay-1">
+        <div class="chat-header d-flex justify-content-between align-items-center px-3 py-2">
+          <div>
+            <h6 class="mb-0">แชทกับ AI</h6>
+            <small class="text-white-50">ถามอารายาเกี่ยวกับตารางเวรหรือความทรงจำ</small>
+          </div>
+          <button type="button" class="btn-close btn-close-white" aria-label="Close" id="chatCloseBtn"></button>
+        </div>
+        <div id="chatMessages" class="chat-body p-3 d-flex flex-column"></div>
+        <div class="chat-footer p-3">
+          <div class="mb-2 text-muted small" id="chatStatus">พร้อมใช้งาน</div>
+          <div class="d-flex gap-2">
+            <textarea id="chatInput" class="form-control" rows="3" placeholder="พิมพ์ข้อความถึงอารายา..."></textarea>
+            <button id="chatSendBtn" class="btn btn-primary">ส่ง</button>
+          </div>
+        </div>
+      </div>
+      <button id="chatToggleBtn" class="btn btn-primary chat-toggle-btn">AI</button>
     </div>
 
     <script>
@@ -671,6 +733,10 @@
         document.getElementById('nextMonthBtn').addEventListener('click', () => changeMonth(1));
         const chatSendBtn = document.getElementById('chatSendBtn');
         const chatInput = document.getElementById('chatInput');
+        const chatToggleBtn = document.getElementById('chatToggleBtn');
+        const chatCloseBtn = document.getElementById('chatCloseBtn');
+        const chatWindow = document.getElementById('chatWindow');
+
         if (chatSendBtn) chatSendBtn.addEventListener('click', sendChatMessage);
         if (chatInput) {
           chatInput.addEventListener('keydown', (event) => {
@@ -680,6 +746,22 @@
             }
           });
         }
+
+        if (chatToggleBtn) {
+          chatToggleBtn.addEventListener('click', () => {
+            if (chatWindow) chatWindow.classList.toggle('hidden');
+            if (chatWindow && !chatWindow.classList.contains('hidden')) {
+              chatInput?.focus();
+            }
+          });
+        }
+
+        if (chatCloseBtn) {
+          chatCloseBtn.addEventListener('click', () => {
+            if (chatWindow) chatWindow.classList.add('hidden');
+          });
+        }
+
         updateMonthLabel();
         loadDashboard().catch(err => {
           document.getElementById('scheduleTableBody').innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">ไม่สามารถโหลดข้อมูลได้</td></tr>`;
