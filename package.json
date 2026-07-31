@@ -2,9 +2,9 @@
   "name": "line-echo-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "server/index.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node server/index.js"
   },
   "keywords": [],
   "author": "",
