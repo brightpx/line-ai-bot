@@ -568,17 +568,6 @@
           });
         }
 
-        const tbody = document.getElementById('scheduleTableBody');
-        tbody.innerHTML = data.items.length === 0
-          ? '<tr><td colspan="4" class="text-center py-4">ยังไม่มีตารางเวร</td></tr>'
-          : data.items.map(item => `
-              <tr class="align-middle">
-                <td class="text-muted">${item.date}</td>
-                <td>${item.shift}</td>
-                <td><span class="badge ${getBadgeClass(item.category)} badge-category">${item.categoryLabel}</span></td>
-                <td class="text-muted">${item.createdAt}</td>
-              </tr>
-            `).join('');
       }
 
       document.addEventListener('DOMContentLoaded', () => {
