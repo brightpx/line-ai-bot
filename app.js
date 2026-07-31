@@ -14,7 +14,92 @@ if (!LINE_GROUP_ID) {
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("LINE AI Bot is running");
+  res.send(`
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>LINE AI Bot</title>
+      </head>
+      <body>
+        <h1>LINE AI Bot</h1>
+        <p>ระบบทำงานเรียบร้อย</p>
+        <ul>
+          <li><a href="/dashboard">Dashboard ตารางเวร</a></li>
+          <li><a href="/ping">Ping</a></li>
+        </ul>
+      </body>
+    </html>
+  `);
+});
+
+app.get("/dashboard", async (req, res) => {
+  try {
+    const schedule = await getAllWorkSchedule();
+
+    const getRowClass = shift => {
+      const value = shift.toLowerCase();
+      if (value.includes("เช้า") || value.includes("morning") || value.includes("day")) return "shift-morning";
+      if (value.includes("บ่าย") || value.includes("afternoon")) return "shift-afternoon";
+      if (value.includes("สองทุ่ม") || value.includes("evening")) return "shift-evening";
+      if (value.includes("กลางคืน") || value.includes("ดึก") || value.includes("night")) return "shift-night";
+      if (value.includes("พัก") || value.includes("หยุด") || value.includes("off")) return "shift-off";
+      return "shift-default";
+    };
+
+    const rows = schedule
+      .map(item => {
+        const rowClass = getRowClass(item.shift);
+        return `
+        <tr class="${rowClass}">
+          <td>${item.work_date.toISOString().slice(0, 10)}</td>
+          <td>${item.shift}</td>
+          <td>${new Date(item.created_at).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</td>
+        </tr>
+      `;
+      })
+      .join("");
+
+    res.send(`
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Dashboard ตารางเวร</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 24px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+            th { background: #f4f4f4; }
+            caption { font-size: 1.4em; margin-bottom: 12px; }
+            .shift-morning { background: #e6f7ff; }
+            .shift-afternoon { background: #fff7e6; }
+            .shift-evening { background: #f9e6ff; }
+            .shift-night { background: #e6e8ff; }
+            .shift-off { background: #e8f5e9; }
+            .shift-default { background: #f7f7f7; }
+          </style>
+        </head>
+        <body>
+          <a href="/">← กลับ</a>
+          <table>
+            <caption>ตารางเวร</caption>
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>เวร</th>
+                <th>บันทึกเมื่อ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || `<tr><td colspan="3">ยังไม่มีตารางเวร</td></tr>`}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("ไม่สามารถแสดง dashboard ได้");
+  }
 });
 
 app.get("/ping", (req, res) => {
