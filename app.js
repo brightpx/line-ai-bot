@@ -161,7 +161,7 @@ app.get("/dashboard", async (req, res) => {
                   },
                   tooltip: {
                     callbacks: {
-                      label: context => `${context.label}: ${context.parsed}`
+                      label: context => context.label + ': ' + context.parsed
                     }
                   }
                 }
