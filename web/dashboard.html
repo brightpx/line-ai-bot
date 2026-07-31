@@ -217,14 +217,22 @@
       }
 
       function animateValue(element, start, end, duration) {
-        const range = end - start;
-        let current = start;
-        const increment = end > start ? 1 : -1;
-        const stepTime = Math.abs(Math.floor(duration / range)) || 50;
+        const safeStart = Math.max(0, Number(start) || 0);
+        const safeEnd = Math.max(0, Number(end) || 0);
+        const range = safeEnd - safeStart;
+
+        if (range === 0) {
+          element.textContent = safeEnd;
+          return;
+        }
+
+        let current = safeStart;
+        const increment = range > 0 ? 1 : -1;
+        const stepTime = Math.max(1, Math.floor(duration / Math.abs(range)));
         const timer = setInterval(() => {
           current += increment;
           element.textContent = current;
-          if (current === end) {
+          if (current === safeEnd) {
             clearInterval(timer);
           }
         }, stepTime);
