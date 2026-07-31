@@ -29,6 +29,15 @@ async function initDb() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS caregiver_holidays (
+      id SERIAL PRIMARY KEY,
+      holiday_date DATE NOT NULL,
+      description TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
 }
 
 async function loadMemory(limit = 100) {
@@ -131,6 +140,84 @@ async function deleteWorkScheduleEntry(workDate) {
   );
 }
 
+async function upsertCaregiverHoliday(holidayDate, description) {
+  const existing = await pool.query(
+    `
+      SELECT id
+      FROM caregiver_holidays
+      WHERE holiday_date = $1
+    `,
+    [holidayDate]
+  );
+
+  if (existing.rows.length > 0) {
+    await pool.query(
+      `
+        UPDATE caregiver_holidays
+        SET description = $2
+        WHERE holiday_date = $1
+      `,
+      [holidayDate, description]
+    );
+  } else {
+    await pool.query(
+      `
+        INSERT INTO caregiver_holidays (holiday_date, description)
+        VALUES ($1, $2)
+      `,
+      [holidayDate, description]
+    );
+  }
+}
+
+async function deleteCaregiverHolidayByDate(holidayDate) {
+  await pool.query(
+    `
+      DELETE FROM caregiver_holidays
+      WHERE holiday_date = $1
+    `,
+    [holidayDate]
+  );
+}
+
+async function getCaregiverHolidaysPaged(page = 1, pageSize = 20) {
+  const limit = pageSize;
+  const offset = (page - 1) * pageSize;
+  const result = await pool.query(
+    `
+      SELECT *, COUNT(*) OVER() AS total_count
+      FROM caregiver_holidays
+      ORDER BY holiday_date DESC
+      LIMIT $1 OFFSET $2
+    `,
+    [limit, offset]
+  );
+  const rows = result.rows.map(r => r);
+  const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+  return { rows, total };
+}
+
+async function getCaregiverHolidaysByMonth(year, month) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    const now = new Date();
+    year = now.getFullYear();
+    month = now.getMonth() + 1;
+  }
+
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const result = await pool.query(
+    `
+      SELECT *
+      FROM caregiver_holidays
+      WHERE holiday_date >= $1
+        AND holiday_date < ($1::date + INTERVAL '1 month')
+      ORDER BY holiday_date
+    `,
+    [startDate]
+  );
+  return result.rows;
+}
+
 async function getAllWorkSchedule(limit = 70) {
   const result = await pool.query(
     `
@@ -220,6 +307,10 @@ module.exports = {
   getTodayShift,
   getTomorrowShift,
   deleteWorkScheduleEntry,
+  upsertCaregiverHoliday,
+  deleteCaregiverHolidayByDate,
+  getCaregiverHolidaysPaged,
+  getCaregiverHolidaysByMonth,
   getMemoriesPaged,
   deleteMemoryById,
   updateMemory,

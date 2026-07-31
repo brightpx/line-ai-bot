@@ -53,6 +53,10 @@
         color: #fff !important;
       }
 
+      .text-purple {
+        color: #6610f2 !important;
+      }
+
       .table-card {
         border: 0;
         border-radius: 1.5rem;
@@ -98,6 +102,11 @@
       .calendar-day.holiday {
         background: #fff5f8;
         border-color: #f8c1d7;
+      }
+
+      .calendar-day.caregiver {
+        background: #7b00ff;
+        border-color: #7b00ff;
       }
 
       .calendar-day.schedule {
@@ -268,6 +277,7 @@
                 <span class="badge bg-primary">เวร</span>
                 <span class="badge bg-danger">วันหยุดนักขัตฤกษ์</span>
                 <span class="badge bg-info text-dark">วันหยุดธนาคาร</span>
+                <span class="badge bg-purple">วันหยุดพี่เลี้ยง</span>
                 <span class="badge bg-success">วันปัจจุบัน</span>
               </div>
               <div id="calendarGrid" class="calendar-grid"></div>
@@ -475,18 +485,19 @@
         loadDashboard();
       }
 
-      function renderCalendar(items, holidays, year, month) {
+      function renderCalendar(items, holidays, caregiverHolidays, year, month) {
         const calendarGrid = document.getElementById('calendarGrid');
         if (!calendarGrid) return;
 
+        calendarGrid.innerHTML = '';
         const dayNames = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
         const firstDay = new Date(year, month - 1, 1).getDay();
         const daysInMonth = new Date(year, month, 0).getDate();
         const holidayMap = Object.fromEntries((holidays || []).map(h => [h.date, h]));
+        const caregiverHolidayMap = Object.fromEntries((caregiverHolidays || []).map(h => [h.date, h]));
         const scheduleMap = Object.fromEntries((items || []).map(i => [i.date, i]));
         const todayKey = new Date().toISOString().slice(0, 10);
 
-        calendarGrid.innerHTML = '';
         dayNames.forEach(day => {
           const headerCell = document.createElement('div');
           headerCell.className = 'calendar-day header';
@@ -503,17 +514,22 @@
         for (let date = 1; date <= daysInMonth; date += 1) {
           const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
           const holiday = holidayMap[dateKey];
+          const caregiverHoliday = caregiverHolidayMap[dateKey];
           const schedule = scheduleMap[dateKey];
           const cell = document.createElement('div');
           const classes = ['calendar-day'];
           if (dateKey === todayKey) classes.push('today');
           if (holiday) classes.push('holiday');
+          if (caregiverHoliday) classes.push('caregiver');
           if (schedule) classes.push('schedule');
           cell.className = classes.join(' ');
 
           const badges = [];
           if (holiday) {
             badges.push(`<span class="badge ${holiday.type === 'bank' ? 'bg-info text-dark' : 'bg-danger'}">${holiday.typeLabel}</span>`);
+          }
+          if (caregiverHoliday) {
+            badges.push(`<span class="badge bg-purple">${caregiverHoliday.typeLabel}</span>`);
           }
           if (schedule) {
             badges.push(`<span class="badge bg-primary">${schedule.categoryLabel}</span>`);
@@ -523,6 +539,7 @@
             <div>
               <div class="date-number">${date}</div>
               ${holiday ? `<div class="small text-danger mb-1">${holiday.name}</div>` : ''}
+              ${caregiverHoliday ? `<div class="small text-purple mb-1">${caregiverHoliday.description}</div>` : ''}
             </div>
             ${badges.length ? `<div class="d-flex flex-column gap-1">${badges.join('')}</div>` : ''}
           `;
@@ -610,17 +627,37 @@
         animateValue(document.getElementById('countOff'), 0, counts.off, 500);
 
         const holidays = Array.isArray(data.holidays) ? data.holidays : [];
+        const caregiverHolidays = Array.isArray(data.caregiverHolidays) ? data.caregiverHolidays : [];
         const holidayList = document.getElementById('holidayList');
-        holidayList.innerHTML = holidays.length === 0
+        const holidayRows = [
+          ...holidays.map(h => ({
+            date: h.date,
+            title: h.name,
+            subtitle: h.substitute ? 'เลื่อน' : '',
+            note: h.note,
+            badgeClass: h.type === 'bank' ? 'bg-info text-dark' : 'bg-danger',
+            label: h.typeLabel
+          })),
+          ...caregiverHolidays.map(h => ({
+            date: h.date,
+            title: h.description,
+            subtitle: '',
+            note: '',
+            badgeClass: 'bg-purple',
+            label: h.typeLabel
+          }))
+        ].sort((a, b) => a.date.localeCompare(b.date));
+
+        holidayList.innerHTML = holidayRows.length === 0
           ? '<li class="list-group-item text-muted">ไม่มีวันหยุดในเดือนนี้</li>'
-          : holidays.map(h => `
+          : holidayRows.map(h => `
               <li class="list-group-item d-flex justify-content-between align-items-start">
                 <div>
-                  <div class="fw-semibold">${h.name}</div>
-                  <div class="text-muted small">${h.date}${h.substitute ? ' (เลื่อน)' : ''}</div>
+                  <div class="fw-semibold">${h.title}</div>
+                  <div class="text-muted small">${h.date}${h.subtitle ? ` (${h.subtitle})` : ''}</div>
                   ${h.note ? `<div class="text-muted small">${h.note}</div>` : ''}
                 </div>
-                <span class="badge ${h.type === 'bank' ? 'bg-info text-dark' : 'bg-danger'} rounded-pill">${h.typeLabel}</span>
+                <span class="badge ${h.badgeClass} rounded-pill">${h.label}</span>
               </li>
             `).join('');
 
@@ -631,7 +668,7 @@
         document.getElementById('loaderRing').style.display = 'none';
         document.getElementById('statusText').textContent = 'อัปเดตข้อมูลเรียบร้อยแล้ว';
 
-        renderCalendar(scheduleItems, holidays, year, month);
+        renderCalendar(scheduleItems, holidays, caregiverHolidays, year, month);
 
         const chartData = [counts.morning, counts.afternoon, counts.evening, counts.night, counts.off, counts.other];
         const chartLabels = ['เช้า', 'บ่าย', 'เย็น', 'กลางคืน', 'พัก/หยุด', 'อื่น ๆ'];

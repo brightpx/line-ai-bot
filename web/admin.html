@@ -72,6 +72,39 @@
         </div>
       </div>
 
+      <div class="row g-4 mt-3">
+        <div class="col-12">
+          <div class="card p-3">
+            <h5>วันหยุดพี่เลี้ยง</h5>
+            <div class="row g-2 mb-2">
+              <div class="col-md-4">
+                <input id="caregiverHolidayDate" class="form-control" type="date" />
+              </div>
+              <div class="col-md-8">
+                <input id="caregiverHolidayDescription" class="form-control" type="text" placeholder="คำอธิบายวันหยุด เช่น วันหยุดครอบครัว" />
+              </div>
+            </div>
+            <div class="d-flex gap-2 mb-3">
+              <button class="btn btn-primary" id="saveCaregiverHolidayBtn">บันทึก/แก้ไข</button>
+              <button class="btn btn-outline-secondary" id="loadCaregiverHolidaysBtn">โหลดรายการ</button>
+            </div>
+            <table class="table table-sm">
+              <thead>
+                <tr><th>วันที่</th><th>คำอธิบาย</th><th></th></tr>
+              </thead>
+              <tbody id="caregiverHolidayTable"></tbody>
+            </table>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <div>
+                <button class="btn btn-sm btn-outline-secondary" id="caregiverPrevBtn">‹ ก่อนหน้า</button>
+                <button class="btn btn-sm btn-outline-secondary" id="caregiverNextBtn">ถัดไป ›</button>
+              </div>
+              <div class="text-muted small">หน้า <span id="caregiverPageLabel">1</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <script>
@@ -134,9 +167,9 @@
         try { await api('/api/admin/memories', { method: 'DELETE' }); loadMemories(1); alert('ลบเรียบร้อย'); } catch (err) { alert(err.message); }
       });
 
-      // Schedule
-      let schedPage = 1;
-      const schedPageSize = 20;
+      // Caregiver holidays
+      let caregiverPage = 1;
+      const caregiverPageSize = 20;
 
       document.getElementById('saveScheduleBtn').addEventListener('click', async () => {
         const date = document.getElementById('workDate').value;
@@ -204,9 +237,60 @@
         const now = new Date(); loadSchedule(1, now.getFullYear(), now.getMonth() + 1);
       });
 
+      async function loadCaregiverHolidays(page = 1) {
+        try {
+          caregiverPage = Math.max(1, Number(page) || 1);
+          const resp = await api(`/api/admin/caregiver-holidays?page=${caregiverPage}&pageSize=${caregiverPageSize}`);
+          const rows = resp.rows || [];
+          const total = resp.total || 0;
+          const totalPages = Math.max(1, Math.ceil(total / caregiverPageSize));
+          document.getElementById('caregiverPageLabel').textContent = `${caregiverPage} / ${totalPages}`;
+
+          const tbody = document.getElementById('caregiverHolidayTable');
+          if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-muted">ยังไม่มี</td></tr>';
+          } else {
+            tbody.innerHTML = rows.map(r => {
+              const dateStr = new Date(r.holiday_date).toISOString().slice(0, 10);
+              return `<tr><td class="text-muted">${dateStr}</td><td>${r.description}</td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-edit-date="${dateStr}" data-edit-description="${encodeURIComponent(r.description)}">แก้ไข</button><button class="btn btn-outline-danger" data-date="${dateStr}">ลบ</button></div></td></tr>`;
+            }).join('');
+          }
+
+          tbody.querySelectorAll('button[data-edit-date]').forEach(btn => btn.addEventListener('click', () => {
+            const date = btn.getAttribute('data-edit-date');
+            const description = decodeURIComponent(btn.getAttribute('data-edit-description') || '');
+            document.getElementById('caregiverHolidayDate').value = date;
+            document.getElementById('caregiverHolidayDescription').value = description;
+          }));
+
+          tbody.querySelectorAll('button[data-date]').forEach(btn => btn.addEventListener('click', async () => {
+            const date = btn.getAttribute('data-date');
+            if (!confirm('ยืนยันลบวันหยุดพี่เลี้ยง ' + date + '?')) return;
+            try { await api(`/api/admin/caregiver-holidays?date=${encodeURIComponent(date)}`, { method: 'DELETE' }); loadCaregiverHolidays(caregiverPage); } catch (err) { alert(err.message); }
+          }));
+
+          document.getElementById('caregiverPrevBtn').onclick = () => { if (caregiverPage > 1) loadCaregiverHolidays(caregiverPage - 1); };
+          document.getElementById('caregiverNextBtn').onclick = () => { if (caregiverPage < totalPages) loadCaregiverHolidays(caregiverPage + 1); };
+        } catch (err) { alert('โหลดไม่สำเร็จ: ' + err.message); }
+      }
+
+      document.getElementById('saveCaregiverHolidayBtn').addEventListener('click', async () => {
+        const date = document.getElementById('caregiverHolidayDate').value;
+        const description = document.getElementById('caregiverHolidayDescription').value.trim();
+        if (!date || !description) return alert('กรุณาใส่วันที่และคำอธิบาย');
+        try {
+          await api('/api/admin/caregiver-holidays', { method: 'POST', body: JSON.stringify({ holiday_date: date, description }) });
+          alert('บันทึกเรียบร้อย');
+          loadCaregiverHolidays(caregiverPage);
+        } catch (err) { alert(err.message); }
+      });
+
+      document.getElementById('loadCaregiverHolidaysBtn').addEventListener('click', () => loadCaregiverHolidays(1));
+
       // initial
       loadMemories();
       loadSchedule();
+      loadCaregiverHolidays();
     </script>
   </body>
 </html>

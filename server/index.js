@@ -1,7 +1,7 @@
 ﻿const express = require("express");
 const path = require("path");
 
-const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift, deleteWorkScheduleEntry, getMemoriesPaged, deleteMemoryById, updateMemory, getWorkSchedulePaged } = require("./db");
+const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift, deleteWorkScheduleEntry, upsertCaregiverHoliday, deleteCaregiverHolidayByDate, getCaregiverHolidaysPaged, getCaregiverHolidaysByMonth, getMemoriesPaged, deleteMemoryById, updateMemory, getWorkSchedulePaged } = require("./db");
 const { replyText, pushText } = require("./lineApi");
 const { createMorningSummary, createArayaResponse } = require("./ai");
 const getShiftCategory = require("../shared/shiftCategory");
@@ -188,6 +188,43 @@ app.delete('/api/admin/schedule', async (req, res) => {
   }
 });
 
+// Admin APIs for caregiver holidays
+app.get('/api/admin/caregiver-holidays', async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.max(1, Math.min(200, Number(req.query.pageSize) || 20));
+    const result = await getCaregiverHolidaysPaged(page, pageSize);
+    res.json({ rows: result.rows, total: result.total, page, pageSize });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load caregiver holidays' });
+  }
+});
+
+app.post('/api/admin/caregiver-holidays', async (req, res) => {
+  try {
+    const { holiday_date, description } = req.body;
+    if (!holiday_date || !description) return res.status(400).json({ error: 'holiday_date and description are required' });
+    await upsertCaregiverHoliday(holiday_date, description);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to upsert caregiver holiday' });
+  }
+});
+
+app.delete('/api/admin/caregiver-holidays', async (req, res) => {
+  try {
+    const date = req.query.date;
+    if (!date) return res.status(400).json({ error: 'date query param is required' });
+    await deleteCaregiverHolidayByDate(date);
+    res.json({ deleted: date });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete caregiver holiday' });
+  }
+});
+
 app.get("/api/schedule", async (req, res) => {
   try {
     const year = Number(req.query.year);
@@ -214,8 +251,15 @@ app.get("/api/schedule", async (req, res) => {
     });
 
     const holidays = getThaiHolidays(year, month);
+    const caregiverHolidays = await getCaregiverHolidaysByMonth(year, month);
+    const caregiverHolidayItems = caregiverHolidays.map(h => ({
+      date: h.holiday_date.toISOString().slice(0, 10),
+      description: h.description,
+      type: 'caregiver',
+      typeLabel: 'วันหยุดพี่เลี้ยง'
+    }));
 
-    res.json({ items, counts, holidays });
+    res.json({ items, counts, holidays, caregiverHolidays: caregiverHolidayItems });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "ไม่สามารถดึงข้อมูลตารางเวรได้" });
