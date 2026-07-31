@@ -232,6 +232,19 @@
               </div>
             </div>
           </div>
+          <div class="card table-card fade-up delay-3 mt-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 class="card-title mb-1">วันหยุดไทย</h5>
+                  <p class="text-muted mb-0">วันหยุดนักขัตฤกษ์และวันหยุดธนาคารในเดือนนี้</p>
+                </div>
+              </div>
+              <ul id="holidayList" class="list-group list-group-flush">
+                <li class="list-group-item text-muted">กำลังโหลดวันหยุด...</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -315,6 +328,21 @@
         animateValue(document.getElementById('countEvening'), 0, counts.evening, 500);
         animateValue(document.getElementById('countNight'), 0, counts.night, 500);
         animateValue(document.getElementById('countOff'), 0, counts.off, 500);
+
+        const holidays = Array.isArray(data.holidays) ? data.holidays : [];
+        const holidayList = document.getElementById('holidayList');
+        holidayList.innerHTML = holidays.length === 0
+          ? '<li class="list-group-item text-muted">ไม่มีวันหยุดในเดือนนี้</li>'
+          : holidays.map(h => `
+              <li class="list-group-item d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-semibold">${h.name}</div>
+                  <div class="text-muted small">${h.date}${h.substitute ? ' (เลื่อน)' : ''}</div>
+                  ${h.note ? `<div class="text-muted small">${h.note}</div>` : ''}
+                </div>
+                <span class="badge ${h.type === 'bank' ? 'bg-info text-dark' : 'bg-danger'} rounded-pill">${h.typeLabel}</span>
+              </li>
+            `).join('');
 
         document.getElementById('loaderRing').style.display = 'none';
         document.getElementById('statusText').textContent = 'อัปเดตข้อมูลเรียบร้อยแล้ว';

@@ -135,7 +135,7 @@ async function getTomorrowShift() {
 }
 
 async function getCurrentMonthWorkSchedule(year, month) {
-  if (typeof year !== 'number' || typeof month !== 'number' || month < 1 || month > 12) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
     const now = new Date();
     year = now.getFullYear();
     month = now.getMonth() + 1;

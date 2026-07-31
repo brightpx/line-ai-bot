@@ -5,6 +5,38 @@ const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeywo
 const { replyText, pushText } = require("./lineApi");
 const { createMorningSummary, createArayaResponse } = require("./ai");
 const getShiftCategory = require("../shared/shiftCategory");
+const Holidays = require("date-holidays");
+
+const hd = new Holidays("TH");
+hd.setLanguages(["th", "en"]);
+
+function getThaiHolidayLabel(type) {
+  return type === "bank" ? "วันหยุดธนาคาร" : type === "public" ? "วันหยุดนักขัตฤกษ์" : type;
+}
+
+function getThaiHolidays(year, month) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    const now = new Date();
+    year = now.getFullYear();
+    month = now.getMonth() + 1;
+  }
+
+  const holidays = hd.getHolidays(year) || [];
+  return holidays
+    .filter(h => {
+      const date = h.date.slice(0, 10);
+      const [y, m] = date.split('-').map(Number);
+      return y === year && m === month && (h.type === 'public' || h.type === 'bank');
+    })
+    .map(h => ({
+      date: h.date.slice(0, 10),
+      name: h.name,
+      type: h.type,
+      typeLabel: getThaiHolidayLabel(h.type),
+      note: h.note || '',
+      substitute: Boolean(h.substitute)
+    }));
+}
 
 const app = express();
 
@@ -46,7 +78,9 @@ app.get("/api/schedule", async (req, res) => {
       other: 0
     });
 
-    res.json({ items, counts });
+    const holidays = getThaiHolidays(year, month);
+
+    res.json({ items, counts, holidays });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "ไม่สามารถดึงข้อมูลตารางเวรได้" });
