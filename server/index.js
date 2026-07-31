@@ -367,6 +367,27 @@ app.post("/webhook", async (req, res) => {
       continue;
     }
 
+    if (userText.startsWith("/วันหยุด")) {
+      const rows = userText.replace("/วันหยุด", "").trim().split("\n").filter(x => x.trim());
+      let count = 0;
+
+      for (const row of rows) {
+        const parts = row.trim().split(" ");
+        if (parts.length < 2) continue;
+        const holidayDate = parts[0];
+        const description = parts.slice(1).join(" ");
+        await upsertCaregiverHoliday(holidayDate, description);
+        count++;
+      }
+
+      if (count === 0) {
+        await replyText(event.replyToken, "รูปแบบคำสั่งไม่ถูกต้อง กรุณาใช้ /วันหยุด YYYY-MM-DD คำอธิบาย");
+      } else {
+        await replyText(event.replyToken, `บันทึกวันหยุดพี่เลี้ยงเรียบร้อย ${count} รายการค่ะ`);
+      }
+      continue;
+    }
+
     if (userText === "/ตารางเวร") {
       const result = await getAllWorkSchedule();
       const answer = result.length === 0
