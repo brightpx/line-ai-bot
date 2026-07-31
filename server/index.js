@@ -1,7 +1,7 @@
 ﻿const express = require("express");
 const path = require("path");
 
-const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift } = require("./db");
+const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift, deleteWorkScheduleEntry } = require("./db");
 const { replyText, pushText } = require("./lineApi");
 const { createMorningSummary, createArayaResponse } = require("./ai");
 const getShiftCategory = require("../shared/shiftCategory");
@@ -51,6 +51,89 @@ app.use(express.static(path.join(__dirname, "..", "web")));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "web", "dashboard.html"));
+});
+
+// Admin UI
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "web", "admin.html"));
+});
+
+// Admin APIs for memories
+app.get('/api/admin/memories', async (req, res) => {
+  try {
+    const mem = await loadMemory(500);
+    res.json(mem);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load memories' });
+  }
+});
+
+app.post('/api/admin/memories', async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ error: 'content is required' });
+    await saveMemory(content);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to save memory' });
+  }
+});
+
+app.delete('/api/admin/memories', async (req, res) => {
+  try {
+    const keyword = req.query.keyword;
+    if (keyword) {
+      await deleteMemoriesByKeyword(keyword);
+      return res.json({ deletedByKeyword: keyword });
+    }
+    await deleteAllMemories();
+    res.json({ deletedAll: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete memories' });
+  }
+});
+
+// Admin APIs for work_schedule
+app.get('/api/admin/schedule', async (req, res) => {
+  try {
+    const { year, month, limit } = req.query;
+    if (year && month) {
+      const rows = await getCurrentMonthWorkSchedule(Number(year), Number(month));
+      return res.json(rows);
+    }
+    const rows = await getAllWorkSchedule(limit ? Number(limit) : 200);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load schedule' });
+  }
+});
+
+app.post('/api/admin/schedule', async (req, res) => {
+  try {
+    const { work_date, shift } = req.body;
+    if (!work_date || !shift) return res.status(400).json({ error: 'work_date and shift are required' });
+    await upsertWorkScheduleEntry(work_date, shift);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to upsert schedule' });
+  }
+});
+
+app.delete('/api/admin/schedule', async (req, res) => {
+  try {
+    const date = req.query.date;
+    if (!date) return res.status(400).json({ error: 'date query param is required' });
+    await deleteWorkScheduleEntry(date);
+    res.json({ deleted: date });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete schedule entry' });
+  }
 });
 
 app.get("/api/schedule", async (req, res) => {

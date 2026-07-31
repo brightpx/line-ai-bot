@@ -96,6 +96,16 @@ async function upsertWorkScheduleEntry(workDate, shift) {
   }
 }
 
+async function deleteWorkScheduleEntry(workDate) {
+  await pool.query(
+    `
+      DELETE FROM work_schedule
+      WHERE work_date = $1
+    `,
+    [workDate]
+  );
+}
+
 async function getAllWorkSchedule(limit = 70) {
   const result = await pool.query(
     `
@@ -166,5 +176,6 @@ module.exports = {
   getAllWorkSchedule,
   getCurrentMonthWorkSchedule,
   getTodayShift,
-  getTomorrowShift
+  getTomorrowShift,
+  deleteWorkScheduleEntry
 };
