@@ -134,6 +134,20 @@ async function getTomorrowShift() {
   return result.rows.length > 0 ? result.rows[0].shift : null;
 }
 
+async function getCurrentMonthWorkSchedule() {
+  const result = await pool.query(
+    `
+      SELECT *
+      FROM work_schedule
+      WHERE work_date >= date_trunc('month', CURRENT_DATE)
+        AND work_date < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
+      ORDER BY work_date
+    `
+  );
+
+  return result.rows;
+}
+
 module.exports = {
   initDb,
   loadMemory,
@@ -142,6 +156,7 @@ module.exports = {
   deleteMemoriesByKeyword,
   upsertWorkScheduleEntry,
   getAllWorkSchedule,
+  getCurrentMonthWorkSchedule,
   getTodayShift,
   getTomorrowShift
 };

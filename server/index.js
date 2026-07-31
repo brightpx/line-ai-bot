@@ -1,7 +1,7 @@
 ﻿const express = require("express");
 const path = require("path");
 
-const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getTodayShift, getTomorrowShift } = require("./db");
+const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift } = require("./db");
 const { replyText, pushText } = require("./lineApi");
 const { createMorningSummary, createArayaResponse } = require("./ai");
 const getShiftCategory = require("../shared/shiftCategory");
@@ -23,7 +23,7 @@ app.get("/", (req, res) => {
 
 app.get("/api/schedule", async (req, res) => {
   try {
-    const schedule = await getAllWorkSchedule();
+    const schedule = await getCurrentMonthWorkSchedule();
     const items = schedule.map(item => ({
       date: item.work_date.toISOString().slice(0, 10),
       shift: item.shift,
