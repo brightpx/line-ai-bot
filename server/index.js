@@ -10,6 +10,27 @@ const Holidays = require("date-holidays");
 const hd = new Holidays("TH");
 hd.setLanguages(["th", "en"]);
 
+// Simple admin auth (Basic). Default password is '111111' but can be overridden by ADMIN_PASS env var.
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS;
+function requireAdmin(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth) {
+    res.set('WWW-Authenticate', 'Basic realm="Admin"');
+    return res.status(401).send('Authentication required');
+  }
+  const parts = auth.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Basic') {
+    res.set('WWW-Authenticate', 'Basic realm="Admin"');
+    return res.status(401).send('Invalid authentication');
+  }
+  const creds = Buffer.from(parts[1], 'base64').toString('utf8');
+  const [user, pass] = creds.split(':');
+  if (user === ADMIN_USER && pass === ADMIN_PASS) return next();
+  res.set('WWW-Authenticate', 'Basic realm="Admin"');
+  return res.status(401).send('Unauthorized');
+}
+
 function getThaiHolidayLabel(type) {
   return type === "bank" ? "วันหยุดธนาคาร" : type === "public" ? "วันหยุดนักขัตฤกษ์" : type;
 }
@@ -54,9 +75,12 @@ app.get("/", (req, res) => {
 });
 
 // Admin UI
-app.get("/admin", (req, res) => {
+app.get("/admin", requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, "..", "web", "admin.html"));
 });
+
+// Protect admin APIs
+app.use('/api/admin', requireAdmin);
 
 // Admin APIs for memories
 app.get('/api/admin/memories', async (req, res) => {

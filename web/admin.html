@@ -164,7 +164,21 @@
           const totalPages = Math.max(1, Math.ceil(total / schedPageSize));
 
           const tbody = document.getElementById('scheduleTable');
-          tbody.innerHTML = rows.length === 0 ? '<tr><td colspan="3" class="text-muted">ยังไม่มี</td></tr>' : rows.map(r => `<tr><td class="text-muted">${r.work_date}</td><td>${r.shift}</td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-edit-date="${r.work_date}" data-edit-shift="${r.shift}">แก้ไข</button><button class="btn btn-outline-danger" data-date="${r.work_date}">ลบ</button></div></td></tr>`).join('');
+          if (!rows || rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-muted">ยังไม่มี</td></tr>';
+          } else {
+            const rowsHtml = rows.map(r => {
+              // normalize date to YYYY-MM-DD for input[type=date]
+              let d = r.work_date;
+              try {
+                if (typeof d === 'object' && d !== null && d.toISOString) d = d.toISOString();
+                if (typeof d === 'string') d = d.slice(0, 10);
+              } catch (e) { d = String(r.work_date).slice(0, 10); }
+              const dateStr = d;
+              return `<tr><td class="text-muted">${dateStr}</td><td>${r.shift}</td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-edit-date="${dateStr}" data-edit-shift="${r.shift}">แก้ไข</button><button class="btn btn-outline-danger" data-date="${dateStr}">ลบ</button></div></td></tr>`;
+            }).join('');
+            tbody.innerHTML = rowsHtml;
+          }
 
           document.getElementById('schedPageLabel').textContent = `${schedPage} / ${totalPages}`;
 
