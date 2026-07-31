@@ -1,7 +1,7 @@
 ﻿const express = require("express");
 const path = require("path");
 
-const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift, deleteWorkScheduleEntry } = require("./db");
+const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift, deleteWorkScheduleEntry, getMemoriesPaged, deleteMemoryById, updateMemory, getWorkSchedulePaged } = require("./db");
 const { replyText, pushText } = require("./lineApi");
 const { createMorningSummary, createArayaResponse } = require("./ai");
 const getShiftCategory = require("../shared/shiftCategory");
@@ -61,8 +61,10 @@ app.get("/admin", (req, res) => {
 // Admin APIs for memories
 app.get('/api/admin/memories', async (req, res) => {
   try {
-    const mem = await loadMemory(500);
-    res.json(mem);
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.max(1, Math.min(200, Number(req.query.pageSize) || 20));
+    const result = await getMemoriesPaged(page, pageSize);
+    res.json({ rows: result.rows, total: result.total, page, pageSize });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to load memories' });
@@ -78,6 +80,30 @@ app.post('/api/admin/memories', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to save memory' });
+  }
+});
+app.put('/api/admin/memories/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { content } = req.body;
+    if (!id || !content) return res.status(400).json({ error: 'id and content are required' });
+    await updateMemory(id, content);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update memory' });
+  }
+});
+
+app.delete('/api/admin/memories/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'id is required' });
+    await deleteMemoryById(id);
+    res.json({ deleted: id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete memory' });
   }
 });
 
@@ -99,13 +125,15 @@ app.delete('/api/admin/memories', async (req, res) => {
 // Admin APIs for work_schedule
 app.get('/api/admin/schedule', async (req, res) => {
   try {
-    const { year, month, limit } = req.query;
+    const { year, month, page, pageSize, limit } = req.query;
     if (year && month) {
       const rows = await getCurrentMonthWorkSchedule(Number(year), Number(month));
-      return res.json(rows);
+      return res.json({ rows, total: rows.length, page: 1, pageSize: rows.length });
     }
-    const rows = await getAllWorkSchedule(limit ? Number(limit) : 200);
-    res.json(rows);
+    const p = Math.max(1, Number(page) || 1);
+    const ps = Math.max(1, Math.min(500, Number(pageSize) || 20));
+    const result = await getWorkSchedulePaged(p, ps);
+    res.json({ rows: result.rows, total: result.total, page: p, pageSize: ps });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to load schedule' });

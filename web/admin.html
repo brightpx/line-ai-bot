@@ -30,6 +30,13 @@
               <button class="btn btn-danger" id="deleteAllMemoriesBtn">ลบทั้งหมด</button>
             </div>
             <ul id="memoriesList" class="list-group list-group-flush" style="max-height:300px; overflow:auto;"></ul>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <div>
+                <button class="btn btn-sm btn-outline-secondary" id="memPrevBtn">‹ ก่อนหน้า</button>
+                <button class="btn btn-sm btn-outline-secondary" id="memNextBtn">ถัดไป ›</button>
+              </div>
+              <div class="text-muted small">หน้า <span id="memPageLabel">1</span></div>
+            </div>
           </div>
         </div>
 
@@ -54,6 +61,13 @@
               </thead>
               <tbody id="scheduleTable"></tbody>
             </table>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <div>
+                <button class="btn btn-sm btn-outline-secondary" id="schedPrevBtn">‹ ก่อนหน้า</button>
+                <button class="btn btn-sm btn-outline-secondary" id="schedNextBtn">ถัดไป ›</button>
+              </div>
+              <div class="text-muted small">หน้า <span id="schedPageLabel">1</span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -67,6 +81,9 @@
         return res.json().catch(() => null);
       }
 
+      let memPage = 1;
+      const memPageSize = 20;
+
       document.getElementById('saveMemoryBtn').addEventListener('click', async () => {
         const text = document.getElementById('memoryText').value.trim();
         if (!text) return alert('กรุณากรอกข้อความ');
@@ -74,34 +91,53 @@
           await api('/api/admin/memories', { method: 'POST', body: JSON.stringify({ content: text }) });
           alert('บันทึกเรียบร้อย');
           document.getElementById('memoryText').value = '';
-          loadMemories();
+          loadMemories(memPage);
         } catch (err) { alert(err.message); }
       });
-
-      async function loadMemories() {
+      async function loadMemories(page = 1) {
         try {
-          const mem = await api('/api/admin/memories');
+          memPage = Math.max(1, Number(page) || 1);
+          const resp = await api(`/api/admin/memories?page=${memPage}&pageSize=${memPageSize}`);
           const list = document.getElementById('memoriesList');
-          list.innerHTML = mem.length === 0 ? '<li class="list-group-item text-muted">ยังไม่มี</li>' : mem.map(m => `<li class="list-group-item d-flex justify-content-between align-items-start"><div><div class="fw-semibold">${new Date(m.created_at).toLocaleString()}</div><div class="small text-muted">${m.content}</div></div><button class="btn btn-sm btn-outline-danger" data-id="${m.id}">ลบ</button></li>`).join('');
-          list.querySelectorAll('button[data-id]').forEach(btn => btn.addEventListener('click', async (e) => {
-            const id = btn.getAttribute('data-id');
-            const keyword = prompt('ลบโดยคำค้น (ใส่คำที่ต้องการลบ) หรือยกเลิกเพื่อไม่ลบ');
-            if (!keyword) return;
-            try {
-              await api(`/api/admin/memories?keyword=${encodeURIComponent(keyword)}`, { method: 'DELETE' });
-              loadMemories();
-            } catch (err) { alert(err.message); }
+          const rows = resp.rows || [];
+          const total = resp.total || 0;
+          const totalPages = Math.max(1, Math.ceil(total / memPageSize));
+          document.getElementById('memPageLabel').textContent = `${memPage} / ${totalPages}`;
+
+          list.innerHTML = rows.length === 0 ? '<li class="list-group-item text-muted">ยังไม่มี</li>' : rows.map(m => `<li class="list-group-item d-flex justify-content-between align-items-start"><div><div class="fw-semibold">${new Date(m.created_at).toLocaleString()}</div><div class="small text-muted" data-id-content="${m.id}">${m.content}</div></div><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-edit-id="${m.id}">แก้ไข</button><button class="btn btn-outline-danger" data-del-id="${m.id}">ลบ</button></div></li>`).join('');
+
+          // attach edit/delete handlers
+          list.querySelectorAll('button[data-edit-id]').forEach(btn => btn.addEventListener('click', async (e) => {
+            const id = Number(btn.getAttribute('data-edit-id'));
+            const contentEl = list.querySelector(`[data-id-content="${id}"]`);
+            const current = contentEl ? contentEl.textContent : '';
+            const nv = prompt('แก้ไขข้อความ', current);
+            if (nv === null) return;
+            try { await api(`/api/admin/memories/${id}`, { method: 'PUT', body: JSON.stringify({ content: nv }) }); loadMemories(memPage); } catch (err) { alert(err.message); }
           }));
+
+          list.querySelectorAll('button[data-del-id]').forEach(btn => btn.addEventListener('click', async (e) => {
+            const id = Number(btn.getAttribute('data-del-id'));
+            if (!confirm('ยืนยันลบ id=' + id + '?')) return;
+            try { await api(`/api/admin/memories/${id}`, { method: 'DELETE' }); loadMemories(memPage); } catch (err) { alert(err.message); }
+          }));
+
+          // prev/next
+          document.getElementById('memPrevBtn').onclick = () => { if (memPage > 1) loadMemories(memPage - 1); };
+          document.getElementById('memNextBtn').onclick = () => { if (memPage < totalPages) loadMemories(memPage + 1); };
         } catch (err) { alert('โหลดไม่สำเร็จ: ' + err.message); }
       }
 
-      document.getElementById('loadMemoriesBtn').addEventListener('click', loadMemories);
+      document.getElementById('loadMemoriesBtn').addEventListener('click', () => loadMemories(1));
       document.getElementById('deleteAllMemoriesBtn').addEventListener('click', async () => {
         if (!confirm('ยืนยันลบ memories ทั้งหมด?')) return;
-        try { await api('/api/admin/memories', { method: 'DELETE' }); loadMemories(); alert('ลบเรียบร้อย'); } catch (err) { alert(err.message); }
+        try { await api('/api/admin/memories', { method: 'DELETE' }); loadMemories(1); alert('ลบเรียบร้อย'); } catch (err) { alert(err.message); }
       });
 
       // Schedule
+      let schedPage = 1;
+      const schedPageSize = 20;
+
       document.getElementById('saveScheduleBtn').addEventListener('click', async () => {
         const date = document.getElementById('workDate').value;
         const shift = document.getElementById('workShift').value.trim();
@@ -109,27 +145,50 @@
         try {
           await api('/api/admin/schedule', { method: 'POST', body: JSON.stringify({ work_date: date, shift }) });
           alert('บันทึกเรียบร้อย');
-          loadSchedule();
+          loadSchedule(schedPage);
         } catch (err) { alert(err.message); }
       });
 
-      async function loadSchedule(year, month) {
+      async function loadSchedule(page = 1, year, month) {
         try {
-          const now = new Date();
-          const y = year || now.getFullYear();
-          const m = month || (now.getMonth() + 1);
-          const rows = await api(`/api/admin/schedule?year=${y}&month=${m}`);
+          schedPage = Math.max(1, Number(page) || 1);
+          let url;
+          if (year && month) {
+            url = `/api/admin/schedule?year=${year}&month=${month}`;
+          } else {
+            url = `/api/admin/schedule?page=${schedPage}&pageSize=${schedPageSize}`;
+          }
+          const resp = await api(url);
+          const rows = resp.rows || resp || [];
+          const total = resp.total || (Array.isArray(resp) ? resp.length : 0);
+          const totalPages = Math.max(1, Math.ceil(total / schedPageSize));
+
           const tbody = document.getElementById('scheduleTable');
-          tbody.innerHTML = rows.length === 0 ? '<tr><td colspan="3" class="text-muted">ยังไม่มี</td></tr>' : rows.map(r => `<tr><td class="text-muted">${r.work_date}</td><td>${r.shift}</td><td><button class="btn btn-sm btn-danger" data-date="${r.work_date}">ลบ</button></td></tr>`).join('');
+          tbody.innerHTML = rows.length === 0 ? '<tr><td colspan="3" class="text-muted">ยังไม่มี</td></tr>' : rows.map(r => `<tr><td class="text-muted">${r.work_date}</td><td>${r.shift}</td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-edit-date="${r.work_date}" data-edit-shift="${r.shift}">แก้ไข</button><button class="btn btn-outline-danger" data-date="${r.work_date}">ลบ</button></div></td></tr>`).join('');
+
+          document.getElementById('schedPageLabel').textContent = `${schedPage} / ${totalPages}`;
+
           tbody.querySelectorAll('button[data-date]').forEach(b => b.addEventListener('click', async (e) => {
             const d = b.getAttribute('data-date');
             if (!confirm('ยืนยันลบ ' + d + '?')) return;
-            try { await api(`/api/admin/schedule?date=${encodeURIComponent(d)}`, { method: 'DELETE' }); loadSchedule(); } catch (err) { alert(err.message); }
+            try { await api(`/api/admin/schedule?date=${encodeURIComponent(d)}`, { method: 'DELETE' }); loadSchedule(schedPage); } catch (err) { alert(err.message); }
           }));
+
+          tbody.querySelectorAll('button[data-edit-date]').forEach(b => b.addEventListener('click', (e) => {
+            const d = b.getAttribute('data-edit-date');
+            const s = b.getAttribute('data-edit-shift');
+            document.getElementById('workDate').value = d;
+            document.getElementById('workShift').value = s;
+          }));
+
+          document.getElementById('schedPrevBtn').onclick = () => { if (schedPage > 1) loadSchedule(schedPage - 1); };
+          document.getElementById('schedNextBtn').onclick = () => { if (schedPage < totalPages) loadSchedule(schedPage + 1); };
         } catch (err) { alert('โหลดไม่สำเร็จ: ' + err.message); }
       }
 
-      document.getElementById('loadScheduleBtn').addEventListener('click', () => loadSchedule());
+      document.getElementById('loadScheduleBtn').addEventListener('click', () => {
+        const now = new Date(); loadSchedule(1, now.getFullYear(), now.getMonth() + 1);
+      });
 
       // initial
       loadMemories();

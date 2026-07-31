@@ -42,6 +42,23 @@ async function loadMemory(limit = 100) {
   return result.rows;
 }
 
+async function getMemoriesPaged(page = 1, pageSize = 20) {
+  const limit = pageSize;
+  const offset = (page - 1) * pageSize;
+  const result = await pool.query(
+    `
+      SELECT *, COUNT(*) OVER() AS total_count
+      FROM memories
+      ORDER BY created_at DESC
+      LIMIT $1 OFFSET $2
+    `,
+    [limit, offset]
+  );
+  const rows = result.rows.map(r => r);
+  const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+  return { rows, total };
+}
+
 async function saveMemory(text) {
   await pool.query(
     `
@@ -64,6 +81,14 @@ async function deleteMemoriesByKeyword(keyword) {
     `,
     [`%${keyword}%`]
   );
+}
+
+async function deleteMemoryById(id) {
+  await pool.query(`DELETE FROM memories WHERE id = $1`, [id]);
+}
+
+async function updateMemory(id, content) {
+  await pool.query(`UPDATE memories SET content = $2 WHERE id = $1`, [id, content]);
 }
 
 async function upsertWorkScheduleEntry(workDate, shift) {
@@ -118,6 +143,23 @@ async function getAllWorkSchedule(limit = 70) {
   );
 
   return result.rows;
+}
+
+async function getWorkSchedulePaged(page = 1, pageSize = 20) {
+  const limit = pageSize;
+  const offset = (page - 1) * pageSize;
+  const result = await pool.query(
+    `
+      SELECT *, COUNT(*) OVER() AS total_count
+      FROM work_schedule
+      ORDER BY work_date
+      LIMIT $1 OFFSET $2
+    `,
+    [limit, offset]
+  );
+  const rows = result.rows.map(r => r);
+  const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+  return { rows, total };
 }
 
 async function getTodayShift() {
@@ -177,5 +219,9 @@ module.exports = {
   getCurrentMonthWorkSchedule,
   getTodayShift,
   getTomorrowShift,
-  deleteWorkScheduleEntry
+  deleteWorkScheduleEntry,
+  getMemoriesPaged,
+  deleteMemoryById,
+  updateMemory,
+  getWorkSchedulePaged
 };
