@@ -44,6 +44,15 @@
         min-height: 420px;
       }
 
+      .bg-purple {
+        background-color: #6610f2 !important;
+        color: #fff !important;
+      }
+
+      .badge.bg-purple {
+        color: #fff !important;
+      }
+
       .table-card {
         border: 0;
         border-radius: 1.5rem;
@@ -121,19 +130,19 @@
       </div>
 
       <div class="row g-4 mb-4">
-        <div class="col-xl-4">
+        <div class="col-sm-6 col-xl-2">
           <div class="card stat-card p-4 fade-up delay-3">
             <div class="d-flex align-items-start gap-3">
               <div class="badge bg-primary rounded-circle p-3 shadow-sm">เช้า</div>
               <div>
                 <h6 class="mb-1">เช้า</h6>
-                <p class="text-muted mb-0">บันทึกเวรที่เกิดขึ้นในช่วงเช้า</p>
+                <p class="text-muted mb-0">บันทึกเวรเช้า</p>
                 <div class="display-6 fw-semibold mt-2" id="countMorning">0</div>
               </div>
             </div>
           </div>
         </div>
-        <div class="col-xl-4">
+        <div class="col-sm-6 col-xl-2">
           <div class="card stat-card p-4 fade-up delay-4">
             <div class="d-flex align-items-start gap-3">
               <div class="badge bg-warning text-dark rounded-circle p-3 shadow-sm">บ่าย</div>
@@ -145,8 +154,32 @@
             </div>
           </div>
         </div>
-        <div class="col-xl-4">
+        <div class="col-sm-6 col-xl-2">
           <div class="card stat-card p-4 fade-up delay-5">
+            <div class="d-flex align-items-start gap-3">
+              <div class="badge bg-purple text-white rounded-circle p-3 shadow-sm">เย็น</div>
+              <div>
+                <h6 class="mb-1">เย็น</h6>
+                <p class="text-muted mb-0">เวรช่วงเย็น</p>
+                <div class="display-6 fw-semibold mt-2" id="countEvening">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+          <div class="card stat-card p-4 fade-up delay-6">
+            <div class="d-flex align-items-start gap-3">
+              <div class="badge bg-dark text-white rounded-circle p-3 shadow-sm">กลางคืน</div>
+              <div>
+                <h6 class="mb-1">กลางคืน</h6>
+                <p class="text-muted mb-0">เวรกลางคืน</p>
+                <div class="display-6 fw-semibold mt-2" id="countNight">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+          <div class="card stat-card p-4 fade-up delay-7">
             <div class="d-flex align-items-start gap-3">
               <div class="badge bg-success rounded-circle p-3 shadow-sm">พัก</div>
               <div>
@@ -255,6 +288,8 @@
         animateValue(totalCount, Number(totalCount.textContent || 0), data.items.length, 500);
         animateValue(document.getElementById('countMorning'), 0, counts.morning, 500);
         animateValue(document.getElementById('countAfternoon'), 0, counts.afternoon, 500);
+        animateValue(document.getElementById('countEvening'), 0, counts.evening, 500);
+        animateValue(document.getElementById('countNight'), 0, counts.night, 500);
         animateValue(document.getElementById('countOff'), 0, counts.off, 500);
 
         document.getElementById('loaderRing').style.display = 'none';
