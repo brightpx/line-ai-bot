@@ -134,15 +134,23 @@ async function getTomorrowShift() {
   return result.rows.length > 0 ? result.rows[0].shift : null;
 }
 
-async function getCurrentMonthWorkSchedule() {
+async function getCurrentMonthWorkSchedule(year, month) {
+  if (typeof year !== 'number' || typeof month !== 'number' || month < 1 || month > 12) {
+    const now = new Date();
+    year = now.getFullYear();
+    month = now.getMonth() + 1;
+  }
+
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const result = await pool.query(
     `
       SELECT *
       FROM work_schedule
-      WHERE work_date >= date_trunc('month', CURRENT_DATE)
-        AND work_date < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
+      WHERE work_date >= $1
+        AND work_date < ($1::date + INTERVAL '1 month')
       ORDER BY work_date
-    `
+    `,
+    [startDate]
   );
 
   return result.rows;

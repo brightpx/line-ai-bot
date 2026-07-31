@@ -23,7 +23,9 @@ app.get("/", (req, res) => {
 
 app.get("/api/schedule", async (req, res) => {
   try {
-    const schedule = await getCurrentMonthWorkSchedule();
+    const year = Number(req.query.year);
+    const month = Number(req.query.month);
+    const schedule = await getCurrentMonthWorkSchedule(year, month);
     const items = schedule.map(item => ({
       date: item.work_date.toISOString().slice(0, 10),
       shift: item.shift,

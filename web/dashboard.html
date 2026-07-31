@@ -102,8 +102,10 @@
             <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
               <div>
                 <h1 class="h2 page-title mb-2">ข้อมูลตารางเวร</h1>
-                 <div class="d-flex flex-wrap gap-2">
-  
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                  <button id="prevMonthBtn" class="btn btn-sm btn-outline-secondary">‹ เดือนก่อน</button>
+                  <button id="nextMonthBtn" class="btn btn-sm btn-outline-secondary">เดือนถัดไป ›</button>
+                  <span id="currentMonthLabel" class="badge bg-secondary">เดือนนี้</span>
                 </div>
               </div>
               <div class="text-center text-md-end">
@@ -211,7 +213,7 @@
                   <h5 class="card-title mb-1">ตารางเวร</h5>
                   <p class="text-muted mb-0">ข้อมูลล่าสุดจากฐานข้อมูลพร้อมประเภทเวร</p>
                 </div>
-                <button class="btn btn-outline-primary btn-sm" onclick="initDashboard()">รีเฟรช</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="loadDashboard()">รีเฟรช</button>
               </div>
               <div class="table-responsive shadow-sm rounded-3 overflow-hidden">
                 <table class="table table-borderless mb-0 align-middle">
@@ -246,6 +248,31 @@
         }[category] || 'bg-secondary';
       }
 
+      const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+      let currentYear = new Date().getFullYear();
+      let currentMonth = new Date().getMonth() + 1;
+
+      function formatMonthLabel(year, month) {
+        return `${monthNames[month - 1]} ${year}`;
+      }
+
+      function updateMonthLabel() {
+        document.getElementById('currentMonthLabel').textContent = formatMonthLabel(currentYear, currentMonth);
+      }
+
+      function changeMonth(offset) {
+        currentMonth += offset;
+        if (currentMonth > 12) {
+          currentMonth = 1;
+          currentYear += 1;
+        } else if (currentMonth < 1) {
+          currentMonth = 12;
+          currentYear -= 1;
+        }
+        updateMonthLabel();
+        loadDashboard();
+      }
+
       function animateValue(element, start, end, duration) {
         const safeStart = Math.max(0, Number(start) || 0);
         const safeEnd = Math.max(0, Number(end) || 0);
@@ -268,8 +295,8 @@
         }, stepTime);
       }
 
-      async function initDashboard() {
-        const response = await fetch('/api/schedule');
+      async function loadDashboard(year = currentYear, month = currentMonth) {
+        const response = await fetch(`/api/schedule?year=${year}&month=${month}`);
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`API /api/schedule failed ${response.status}: ${errorText}`);
@@ -347,7 +374,10 @@
       }
 
       document.addEventListener('DOMContentLoaded', () => {
-        initDashboard().catch(err => {
+        document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonth(-1));
+        document.getElementById('nextMonthBtn').addEventListener('click', () => changeMonth(1));
+        updateMonthLabel();
+        loadDashboard().catch(err => {
           document.getElementById('scheduleTableBody').innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">ไม่สามารถโหลดข้อมูลได้</td></tr>`;
           document.getElementById('loaderRing').style.display = 'none';
           document.getElementById('statusText').textContent = `เกิดข้อผิดพลาด: ${err.message}`;
