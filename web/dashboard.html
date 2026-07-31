@@ -180,6 +180,28 @@
       </div>
 
       <div class="row g-4 mb-4">
+        <div class="col-12">
+          <div class="card table-card fade-up delay-2">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 class="card-title mb-1">ปฏิทินเวรรายเดือน</h5>
+                  <p class="text-muted mb-0">ดูเวรและวันหยุดในรูปแบบปฏิทิน</p>
+                </div>
+              </div>
+              <div class="calendar-legend d-flex flex-wrap gap-2 mb-3">
+                <span class="badge bg-primary">เวร</span>
+                <span class="badge bg-danger">วันหยุดนักขัตฤกษ์</span>
+                <span class="badge bg-info text-dark">วันหยุดธนาคาร</span>
+                <span class="badge bg-success">วันปัจจุบัน</span>
+              </div>
+              <div id="calendarGrid" class="calendar-grid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4">
         <div class="col-sm-6 col-xl-2">
           <div class="card stat-card p-4 fade-up delay-3">
             <div class="d-flex align-items-start gap-3">
@@ -294,27 +316,6 @@
               <ul id="holidayList" class="list-group list-group-flush">
                 <li class="list-group-item text-muted">กำลังโหลดวันหยุด...</li>
               </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="row g-4 mt-3">
-        <div class="col-12">
-          <div class="card table-card fade-up delay-4">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                  <h5 class="card-title mb-1">ปฏิทินเวรรายเดือน</h5>
-                  <p class="text-muted mb-0">ดูเวรและวันหยุดในรูปแบบปฏิทิน</p>
-                </div>
-              </div>
-              <div class="calendar-legend d-flex flex-wrap gap-2 mb-3">
-                <span class="badge bg-primary">เวร</span>
-                <span class="badge bg-danger">วันหยุดนักขัตฤกษ์</span>
-                <span class="badge bg-info text-dark">วันหยุดธนาคาร</span>
-                <span class="badge bg-success">วันปัจจุบัน</span>
-              </div>
-              <div id="calendarGrid" class="calendar-grid"></div>
             </div>
           </div>
         </div>
