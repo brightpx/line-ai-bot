@@ -140,6 +140,30 @@
         animation: spin 0.9s linear infinite;
       }
 
+      .chat-bubble {
+        border-radius: 1rem;
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.75rem;
+        max-width: 85%;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+
+      .chat-bubble.user {
+        background: #0d6efd;
+        color: #fff;
+        align-self: flex-end;
+        border-bottom-right-radius: 0.4rem;
+      }
+
+      .chat-bubble.ai {
+        background: #fff;
+        color: #212529;
+        border: 1px solid #dee2e6;
+        align-self: flex-start;
+        border-bottom-left-radius: 0.4rem;
+      }
+
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
@@ -323,6 +347,26 @@
               <ul id="holidayList" class="list-group list-group-flush">
                 <li class="list-group-item text-muted">กำลังโหลดวันหยุด...</li>
               </ul>
+            </div>
+          </div>
+          <div class="card table-card fade-up delay-4 mt-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 class="card-title mb-1">แชทกับ AI</h5>
+                  <p class="text-muted mb-0">ถามอารายาเกี่ยวกับตารางเวรหรือข้อมูลความทรงจำ</p>
+                </div>
+              </div>
+              <div id="chatMessages" class="d-flex flex-column border rounded-3 p-3 mb-3" style="min-height:260px; max-height:340px; overflow-y:auto; background:#f8f9fa;"></div>
+              <div class="row g-2">
+                <div class="col-md-9">
+                  <textarea id="chatInput" class="form-control" rows="3" placeholder="พิมพ์ข้อความถึงอารายา..."></textarea>
+                </div>
+                <div class="col-md-3 d-grid">
+                  <button id="chatSendBtn" class="btn btn-primary h-100">ส่งข้อความ</button>
+                </div>
+              </div>
+              <div class="text-muted small mt-2" id="chatStatus">พร้อมใช้งาน</div>
             </div>
           </div>
         </div>
@@ -570,9 +614,72 @@
 
       }
 
+      async function appendChatMessage(text, sender = 'ai') {
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) return;
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${sender === 'user' ? 'user' : 'ai'}`;
+        bubble.textContent = text;
+        chatMessages.appendChild(bubble);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function setChatStatus(message, isError = false) {
+        const status = document.getElementById('chatStatus');
+        if (!status) return;
+        status.textContent = message;
+        status.style.color = isError ? '#dc3545' : '';
+      }
+
+      async function sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (!text) return;
+        appendChatMessage(text, 'user');
+        input.value = '';
+        setChatStatus('กำลังส่งข้อความ...');
+        const button = document.getElementById('chatSendBtn');
+        if (button) button.disabled = true;
+
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'เกิดข้อผิดพลาด');
+          }
+
+          const result = await response.json();
+          appendChatMessage(result.reply || 'ขออภัยค่ะ ยังไม่มีคำตอบ', 'ai');
+          setChatStatus('ตอบกลับเรียบร้อย');
+        } catch (err) {
+          appendChatMessage(`เกิดข้อผิดพลาด: ${err.message}`, 'ai');
+          setChatStatus(`เกิดข้อผิดพลาด: ${err.message}`, true);
+          console.error(err);
+        } finally {
+          if (button) button.disabled = false;
+          input.focus();
+        }
+      }
+
       document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonth(-1));
         document.getElementById('nextMonthBtn').addEventListener('click', () => changeMonth(1));
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        const chatInput = document.getElementById('chatInput');
+        if (chatSendBtn) chatSendBtn.addEventListener('click', sendChatMessage);
+        if (chatInput) {
+          chatInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              sendChatMessage();
+            }
+          });
+        }
         updateMonthLabel();
         loadDashboard().catch(err => {
           document.getElementById('scheduleTableBody').innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">ไม่สามารถโหลดข้อมูลได้</td></tr>`;

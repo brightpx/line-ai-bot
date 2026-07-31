@@ -222,6 +222,27 @@ app.get("/api/schedule", async (req, res) => {
   }
 });
 
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ error: 'message is required' });
+    }
+
+    const memories = await loadMemory();
+    const memoryText = memories.map(x => `- ${x.content}`).join("\n");
+    const scheduleResult = await getAllWorkSchedule();
+    const scheduleText = scheduleResult.map(x => `${x.work_date.toISOString().slice(0, 10)} : ${x.shift}`).join("\n");
+    const completion = await createArayaResponse({ userText: message, memoryText, scheduleText });
+    const answer = completion?.choices?.[0]?.message?.content?.trim() || "ขออภัยค่ะ อารายายังไม่สามารถตอบได้ในขณะนี้";
+
+    res.json({ reply: answer });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to generate AI response' });
+  }
+});
+
 app.get("/dashboard", (req, res) => {
   res.redirect("/");
 });
