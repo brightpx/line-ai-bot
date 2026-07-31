@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LINE AI Bot Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-WZ/paXb5+X0Vv9qG8em7P6H/1v7Rd0G8m0NQ5Sj72D8O+3yP3o5G3Nj6fJ4F6BzK" crossorigin="anonymous" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       :root {
@@ -264,11 +264,15 @@
         const chartLabels = ['เช้า', 'บ่าย', 'เย็น', 'กลางคืน', 'พัก/หยุด', 'อื่น ๆ'];
 
         const ctx = document.getElementById('shiftChart');
+        if (!ctx) {
+          throw new Error('Chart canvas element not found');
+        }
         if (typeof Chart === 'undefined') {
           throw new Error('Chart.js is not loaded');
         }
 
-        if (window.shiftChart) {
+        const hasDataset = window.shiftChart && window.shiftChart.data && Array.isArray(window.shiftChart.data.datasets) && window.shiftChart.data.datasets[0];
+        if (hasDataset) {
           window.shiftChart.data.datasets[0].data = chartData;
           window.shiftChart.update();
         } else {
