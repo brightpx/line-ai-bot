@@ -167,6 +167,10 @@
         try { await api('/api/admin/memories', { method: 'DELETE' }); loadMemories(1); alert('ลบเรียบร้อย'); } catch (err) { alert(err.message); }
       });
 
+      // Work schedule pagination
+      let schedPage = 1;
+      const schedPageSize = 20;
+
       // Caregiver holidays
       let caregiverPage = 1;
       const caregiverPageSize = 20;
