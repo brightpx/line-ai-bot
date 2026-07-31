@@ -110,10 +110,10 @@
         <div class="col-lg-4">
           <div class="card stat-card p-4 fade-up delay-2">
             <div class="d-flex align-items-center gap-3">
-              <div class="loader-ring"></div>
+              <div id="loaderRing" class="loader-ring"></div>
               <div>
                 <h5 class="mb-1">สถานะการอัปเดต</h5>
-                <p class="text-muted mb-0">ข้อมูลดึงจากฐานข้อมูลแบบสด พร้อมสรุปในเวลาเดียวกัน</p>
+                <p id="statusText" class="text-muted mb-0">กำลังโหลดข้อมูลล่าสุด...</p>
               </div>
             </div>
           </div>
@@ -249,6 +249,9 @@
         animateValue(document.getElementById('countAfternoon'), 0, counts.afternoon, 500);
         animateValue(document.getElementById('countOff'), 0, counts.off, 500);
 
+        document.getElementById('loaderRing').style.display = 'none';
+        document.getElementById('statusText').textContent = 'อัปเดตข้อมูลเรียบร้อยแล้ว';
+
         const chartData = [counts.morning, counts.afternoon, counts.evening, counts.night, counts.off, counts.other];
         const chartLabels = ['เช้า', 'บ่าย', 'เย็น', 'กลางคืน', 'พัก/หยุด', 'อื่น ๆ'];
 
@@ -298,6 +301,8 @@
       document.addEventListener('DOMContentLoaded', () => {
         initDashboard().catch(err => {
           document.getElementById('scheduleTableBody').innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">ไม่สามารถโหลดข้อมูลได้</td></tr>`;
+          document.getElementById('loaderRing').style.display = 'none';
+          document.getElementById('statusText').textContent = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
           console.error(err);
         });
       });
