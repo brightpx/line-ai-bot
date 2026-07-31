@@ -3,112 +3,295 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dashboard ตารางเวร</title>
+    <title>LINE AI Bot Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-WZ/paXb5+X0Vv9qG8em7P6H/1v7Rd0G8m0NQ5Sj72D8O+3yP3o5G3Nj6fJ4F6BzK" crossorigin="anonymous" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      body { background: #f8f9fa; }
-      .chart-card { min-height: 380px; }
+      :root {
+        color-scheme: light;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        background: radial-gradient(circle at top left, rgba(13, 110, 253, 0.16), transparent 30%),
+                    radial-gradient(circle at right, rgba(13, 202, 240, 0.12), transparent 30%),
+                    #f4f7ff;
+      }
+
+      .page-title {
+        letter-spacing: 0.02em;
+      }
+
+      .hero-card {
+        background: linear-gradient(135deg, #ffffff, #eef4ff);
+        border: 0;
+        box-shadow: 0 28px 80px rgba(15, 23, 42, 0.06);
+      }
+
+      .stat-card {
+        border: 0;
+        overflow: hidden;
+        transition: transform 0.35s ease, box-shadow 0.35s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 22px 40px rgba(15, 23, 42, 0.12);
+      }
+
+      .chart-card {
+        min-height: 420px;
+      }
+
+      .table-card {
+        border: 0;
+        border-radius: 1.5rem;
+        box-shadow: 0 28px 80px rgba(15, 23, 42, 0.06);
+      }
+
+      .badge-category {
+        font-size: 0.85rem;
+      }
+
+      .fade-up {
+        opacity: 0;
+        transform: translateY(18px);
+        animation: fadeUp 0.9s ease forwards;
+      }
+
+      .fade-up.delay-1 { animation-delay: 0.1s; }
+      .fade-up.delay-2 { animation-delay: 0.2s; }
+      .fade-up.delay-3 { animation-delay: 0.3s; }
+      .fade-up.delay-4 { animation-delay: 0.4s; }
+      .fade-up.delay-5 { animation-delay: 0.5s; }
+
+      @keyframes fadeUp {
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .loader-ring {
+        display: inline-block;
+        width: 2.4rem;
+        height: 2.4rem;
+        border: 4px solid rgba(13, 110, 253, 0.18);
+        border-top-color: #0d6efd;
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
     </style>
   </head>
   <body>
     <div class="container py-5">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 class="h3">Dashboard ตารางเวร</h1>
-          <p class="text-muted mb-0">ดูสรุปเวรพร้อมกราฟและตารางข้อมูล</p>
+      <div class="row g-4 align-items-center mb-4">
+        <div class="col-lg-8">
+          <div class="card hero-card p-4 fade-up delay-1">
+            <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+              <div>
+                <h1 class="h2 page-title mb-2">ข้อมูลตารางเวร</h1>
+                <p class="text-muted mb-3">สรุปและวิเคราะห์ตารางเวรของแม่มุก พร้อมภาพรวมการทำงานในรูปแบบกราฟ และตารางข้อมูลที่อ่านง่าย</p>
+                <div class="d-flex flex-wrap gap-2">
+                  <span class="badge bg-primary">Live update</span>
+                  <span class="badge bg-info text-dark">กราฟเชิงภาพ</span>
+                  <span class="badge bg-success">สวยงาม</span>
+                </div>
+              </div>
+              <div class="text-center text-md-end">
+                <div class="display-6 fw-bold" id="totalCount">0</div>
+                <p class="text-muted mb-0">รวมเวรทั้งหมด</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card stat-card p-4 fade-up delay-2">
+            <div class="d-flex align-items-center gap-3">
+              <div class="loader-ring"></div>
+              <div>
+                <h5 class="mb-1">สถานะการอัปเดต</h5>
+                <p class="text-muted mb-0">ข้อมูลดึงจากฐานข้อมูลแบบสด พร้อมสรุปในเวลาเดียวกัน</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="row g-4 mb-4">
-        <div class="col-lg-4">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title">รายการทั้งหมด</h5>
-              <p class="display-6 mb-0" id="totalCount">0</p>
+        <div class="col-xl-4">
+          <div class="card stat-card p-4 fade-up delay-3">
+            <div class="d-flex align-items-start gap-3">
+              <div class="badge bg-primary rounded-circle p-3 shadow-sm">เช้า</div>
+              <div>
+                <h6 class="mb-1">เช้า</h6>
+                <p class="text-muted mb-0">บันทึกเวรที่เกิดขึ้นในช่วงเช้า</p>
+                <div class="display-6 fw-semibold mt-2" id="countMorning">0</div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="col-lg-8">
-          <div class="card shadow-sm chart-card">
-            <div class="card-body">
-              <h5 class="card-title">สัดส่วนประเภทเวร</h5>
-              <canvas id="shiftChart"></canvas>
+        <div class="col-xl-4">
+          <div class="card stat-card p-4 fade-up delay-4">
+            <div class="d-flex align-items-start gap-3">
+              <div class="badge bg-warning text-dark rounded-circle p-3 shadow-sm">บ่าย</div>
+              <div>
+                <h6 class="mb-1">บ่าย</h6>
+                <p class="text-muted mb-0">เวรบ่ายและบ่ายสี่</p>
+                <div class="display-6 fw-semibold mt-2" id="countAfternoon">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="card stat-card p-4 fade-up delay-5">
+            <div class="d-flex align-items-start gap-3">
+              <div class="badge bg-success rounded-circle p-3 shadow-sm">พัก</div>
+              <div>
+                <h6 class="mb-1">พัก/หยุด</h6>
+                <p class="text-muted mb-0">สรุปวันพักและวันหยุด</p>
+                <div class="display-6 fw-semibold mt-2" id="countOff">0</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title mb-3">ตารางเวร</h5>
-          <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle">
-              <thead class="table-light">
-                <tr>
-                  <th>วันที่</th>
-                  <th>เวร</th>
-                  <th>ประเภท</th>
-                  <th>บันทึกเมื่อ</th>
-                </tr>
-              </thead>
-              <tbody id="scheduleTableBody">
-                <tr><td colspan="4" class="text-center py-4">กำลังโหลดข้อมูล...</td></tr>
-              </tbody>
-            </table>
+      <div class="row g-4">
+        <div class="col-xl-6">
+          <div class="card chart-card shadow-sm fade-up delay-1">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 class="card-title mb-1">สัดส่วนเวร</h5>
+                  <p class="text-muted mb-0">ดูสัดส่วนเวรแต่ละประเภทแบบชัดเจน</p>
+                </div>
+              </div>
+              <canvas id="shiftChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-6">
+          <div class="card table-card fade-up delay-2">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 class="card-title mb-1">ตารางเวร</h5>
+                  <p class="text-muted mb-0">ข้อมูลล่าสุดจากฐานข้อมูลพร้อมประเภทเวร</p>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" onclick="initDashboard()">รีเฟรช</button>
+              </div>
+              <div class="table-responsive shadow-sm rounded-3 overflow-hidden">
+                <table class="table table-borderless mb-0 align-middle">
+                  <thead class="bg-light">
+                    <tr>
+                      <th>วันที่</th>
+                      <th>เวร</th>
+                      <th>ประเภท</th>
+                      <th>บันทึกเมื่อ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="scheduleTableBody">
+                    <tr><td colspan="4" class="text-center py-4">กำลังโหลดข้อมูล...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <script>
+      function getBadgeClass(category) {
+        return {
+          morning: 'bg-primary',
+          afternoon: 'bg-warning text-dark',
+          evening: 'bg-purple text-white',
+          night: 'bg-info text-dark',
+          off: 'bg-success',
+          other: 'bg-secondary'
+        }[category] || 'bg-secondary';
+      }
+
+      function animateValue(element, start, end, duration) {
+        const range = end - start;
+        let current = start;
+        const increment = end > start ? 1 : -1;
+        const stepTime = Math.abs(Math.floor(duration / range)) || 50;
+        const timer = setInterval(() => {
+          current += increment;
+          element.textContent = current;
+          if (current === end) {
+            clearInterval(timer);
+          }
+        }, stepTime);
+      }
+
       async function initDashboard() {
         const response = await fetch('/api/schedule');
         const data = await response.json();
 
         const counts = data.counts;
-        document.getElementById('totalCount').textContent = data.items.length;
+        const totalCount = document.getElementById('totalCount');
+        animateValue(totalCount, Number(totalCount.textContent || 0), data.items.length, 500);
+        animateValue(document.getElementById('countMorning'), 0, counts.morning, 500);
+        animateValue(document.getElementById('countAfternoon'), 0, counts.afternoon, 500);
+        animateValue(document.getElementById('countOff'), 0, counts.off, 500);
 
         const chartData = [counts.morning, counts.afternoon, counts.evening, counts.night, counts.off, counts.other];
         const chartLabels = ['เช้า', 'บ่าย', 'เย็น', 'กลางคืน', 'พัก/หยุด', 'อื่น ๆ'];
 
         const ctx = document.getElementById('shiftChart');
-        new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels: chartLabels,
-            datasets: [{
-              data: chartData,
-              backgroundColor: ['#0d6efd', '#ffc107', '#6610f2', '#0d6efd80', '#198754', '#6c757d'],
-              borderColor: '#fff',
-              borderWidth: 2
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: 'bottom' },
-              tooltip: { callbacks: { label: context => context.label + ': ' + context.parsed } }
+        if (window.shiftChart) {
+          window.shiftChart.data.datasets[0].data = chartData;
+          window.shiftChart.update();
+        } else {
+          window.shiftChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: chartLabels,
+              datasets: [{
+                data: chartData,
+                backgroundColor: ['#0d6efd', '#ffc107', '#6610f2', '#0dcaf0', '#198754', '#6c757d'],
+                borderColor: '#fff',
+                borderWidth: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              animation: {
+                duration: 900,
+                easing: 'easeOutQuart'
+              },
+              plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, padding: 18 } },
+                tooltip: { callbacks: { label: context => `${context.label}: ${context.parsed}` } }
+              }
             }
-          }
-        });
+          });
+        }
 
         const tbody = document.getElementById('scheduleTableBody');
         tbody.innerHTML = data.items.length === 0
           ? '<tr><td colspan="4" class="text-center py-4">ยังไม่มีตารางเวร</td></tr>'
           : data.items.map(item => `
-              <tr>
-                <td>${item.date}</td>
+              <tr class="align-middle">
+                <td class="text-muted">${item.date}</td>
                 <td>${item.shift}</td>
-                <td>${item.categoryLabel}</td>
-                <td>${item.createdAt}</td>
+                <td><span class="badge ${getBadgeClass(item.category)} badge-category">${item.categoryLabel}</span></td>
+                <td class="text-muted">${item.createdAt}</td>
               </tr>
             `).join('');
       }
 
-      initDashboard().catch(err => {
-        document.getElementById('scheduleTableBody').innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">ไม่สามารถโหลดข้อมูลได้</td></tr>`;
-        console.error(err);
+      document.addEventListener('DOMContentLoaded', () => {
+        initDashboard().catch(err => {
+          document.getElementById('scheduleTableBody').innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">ไม่สามารถโหลดข้อมูลได้</td></tr>`;
+          console.error(err);
+        });
       });
     </script>
   </body>
