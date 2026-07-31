@@ -303,6 +303,13 @@
                   </tbody>
                 </table>
               </div>
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                  <button class="btn btn-sm btn-outline-secondary" onclick="changeSchedulePage(-1)">‹ ก่อนหน้า</button>
+                  <button class="btn btn-sm btn-outline-secondary" onclick="changeSchedulePage(1)">ถัดไป ›</button>
+                </div>
+                <div class="text-muted small">หน้าปัจจุบัน <span id="schedulePageLabel">1</span></div>
+              </div>
             </div>
           </div>
           <div class="card table-card fade-up delay-3 mt-4">
@@ -337,6 +344,9 @@
       const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
       let currentYear = new Date().getFullYear();
       let currentMonth = new Date().getMonth() + 1;
+      let scheduleItems = [];
+      let currentSchedulePage = 1;
+      const schedulePageSize = 10;
 
       function formatMonthLabel(year, month) {
         return `${monthNames[month - 1]} ${year}`;
@@ -422,6 +432,34 @@
         }
       }
 
+      function renderScheduleTable() {
+        const tbody = document.getElementById('scheduleTableBody');
+        const pageLabel = document.getElementById('schedulePageLabel');
+        const start = (currentSchedulePage - 1) * schedulePageSize;
+        const end = start + schedulePageSize;
+        const pageItems = scheduleItems.slice(start, end);
+        const totalPages = Math.max(1, Math.ceil(scheduleItems.length / schedulePageSize));
+
+        pageLabel.textContent = `${currentSchedulePage} / ${totalPages}`;
+
+        tbody.innerHTML = pageItems.length === 0
+          ? '<tr><td colspan="4" class="text-center py-4">ยังไม่มีตารางเวร</td></tr>'
+          : pageItems.map(item => `
+              <tr class="align-middle">
+                <td class="text-muted">${item.date}</td>
+                <td>${item.shift}</td>
+                <td><span class="badge ${getBadgeClass(item.category)} badge-category">${item.categoryLabel}</span></td>
+                <td class="text-muted">${item.createdAt}</td>
+              </tr>
+            `).join('');
+      }
+
+      function changeSchedulePage(delta) {
+        const totalPages = Math.max(1, Math.ceil(scheduleItems.length / schedulePageSize));
+        currentSchedulePage = Math.min(Math.max(1, currentSchedulePage + delta), totalPages);
+        renderScheduleTable();
+      }
+
       function animateValue(element, start, end, duration) {
         const safeStart = Math.max(0, Number(start) || 0);
         const safeEnd = Math.max(0, Number(end) || 0);
@@ -480,10 +518,14 @@
               </li>
             `).join('');
 
+        scheduleItems = data.items || [];
+        currentSchedulePage = 1;
+        renderScheduleTable();
+
         document.getElementById('loaderRing').style.display = 'none';
         document.getElementById('statusText').textContent = 'อัปเดตข้อมูลเรียบร้อยแล้ว';
 
-        renderCalendar(data.items, holidays, year, month);
+        renderCalendar(scheduleItems, holidays, year, month);
 
         const chartData = [counts.morning, counts.afternoon, counts.evening, counts.night, counts.off, counts.other];
         const chartLabels = ['เช้า', 'บ่าย', 'เย็น', 'กลางคืน', 'พัก/หยุด', 'อื่น ๆ'];
