@@ -251,8 +251,15 @@ app.get("/api/schedule", async (req, res) => {
     });
 
     const holidays = getThaiHolidays(year, month);
+    const caregiverHolidays = await getCaregiverHolidaysByMonth(year, month);
+    const caregiverHolidayItems = caregiverHolidays.map(h => ({
+      date: h.holiday_date.toISOString().slice(0, 10),
+      description: h.description,
+      type: 'caregiver',
+      typeLabel: 'วันหยุดพี่เลี้ยง'
+    }));
 
-    res.json({ items, counts, holidays});
+    res.json({ items, counts, holidays, caregiverHolidays: caregiverHolidayItems });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "ไม่สามารถดึงข้อมูลตารางเวรได้" });

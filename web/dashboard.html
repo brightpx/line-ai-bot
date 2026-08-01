@@ -637,14 +637,6 @@
             note: h.note,
             badgeClass: h.type === 'bank' ? 'bg-info text-dark' : 'bg-danger',
             label: h.typeLabel
-          })),
-          ...caregiverHolidays.map(h => ({
-            date: h.date,
-            title: h.description,
-            subtitle: '',
-            note: '',
-            badgeClass: 'bg-purple',
-            label: h.typeLabel
           }))
         ].sort((a, b) => a.date.localeCompare(b.date));
 
