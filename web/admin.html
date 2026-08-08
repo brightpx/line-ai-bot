@@ -6,8 +6,166 @@
     <title>Admin - LINE Bot</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
-      body { background: #f4f7ff; min-height:100vh; }
-      .container { max-width: 980px; }
+      :root {
+        --surface-1: #0A0D12;
+        --surface-2: #0F131C;
+        --surface-3: #161D2B;
+        --surface-4: #1E2636;
+        --surface-5: #2A3447;
+        --accent: #38BDF8;
+        --accent-muted: #0EA5E9;
+        --text-primary: #F1F5F9;
+        --text-secondary: #94A3B8;
+        --text-muted: #64748B;
+        --border: rgba(148, 163, 184, 0.12);
+        --radius-sm: 0.75rem;
+        --radius-md: 1rem;
+        --radius-lg: 1.5rem;
+        --radius-pill: 999px;
+        color-scheme: dark;
+      }
+
+      body {
+        background: var(--surface-1);
+        color: var(--text-primary);
+        min-height: 100vh;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+      }
+
+      .container {
+        max-width: 980px;
+      }
+
+      .card {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      h2, h5 {
+        color: var(--text-primary);
+        font-weight: 700;
+      }
+
+      .btn {
+        border-radius: var(--radius-pill);
+        font-weight: 600;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-muted));
+        border: none;
+        color: #fff;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(56, 189, 248, 0.4);
+      }
+
+      .btn-outline-primary {
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        background: transparent;
+      }
+
+      .btn-outline-primary:hover {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .btn-outline-secondary {
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        background: transparent;
+      }
+
+      .btn-outline-secondary:hover {
+        background: var(--surface-3);
+        border-color: var(--text-secondary);
+      }
+
+      .btn-outline-danger {
+        border: 1px solid #EF4444;
+        color: #EF4444;
+        background: transparent;
+      }
+
+      .btn-outline-danger:hover {
+        background: #EF4444;
+        color: #fff;
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #EF4444, #DC2626);
+        border: none;
+        color: #fff;
+      }
+
+      .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(239, 68, 68, 0.4);
+      }
+
+      .form-control, .form-control:focus {
+        background: var(--surface-3);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        border-radius: var(--radius-sm);
+      }
+
+      .form-control:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+      }
+
+      .table {
+        color: var(--text-primary);
+      }
+
+      .table thead {
+        background: var(--surface-3);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.2s ease;
+      }
+
+      .table tbody tr:hover {
+        background: var(--surface-3);
+      }
+
+      .list-group-item {
+        background: var(--surface-3);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+      }
+
+      .list-group-item:hover {
+        background: var(--surface-4);
+      }
+
+      .text-muted {
+        color: var(--text-muted) !important;
+      }
+
+      .small {
+        color: var(--text-secondary);
+      }
+
+      .fw-semibold {
+        font-weight: 600;
+      }
+
+      .btn-group {
+        border-radius: var(--radius-pill);
+        overflow: hidden;
+      }
     </style>
   </head>
   <body>
