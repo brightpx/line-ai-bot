@@ -1,0 +1,61 @@
+/* ===== Admin page specific styles ===== */
+/* ต้องโหลดหลัง theme.css */
+
+.container {
+  max-width: 980px;
+}
+
+h2,
+h5 {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.btn-group {
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+/* ตารางขนาดเล็กในหน้า admin ใช้ surface สว่างกว่า dashboard เล็กน้อย
+   ต้องใช้ !important เพื่อ override กฎ .table ใน theme.css */
+.table-sm {
+  font-size: 0.9rem;
+  background: var(--surface-3) !important;
+}
+
+.table-sm thead th {
+  padding: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary) !important;
+  background: var(--surface-4) !important;
+  border-color: var(--border) !important;
+}
+
+.table-sm tbody tr {
+  background: var(--surface-3) !important;
+}
+
+.table-sm tbody td {
+  padding: 0.75rem;
+  vertical-align: middle;
+  background: var(--surface-3) !important;
+  border-color: var(--border) !important;
+}
+
+.table-sm tbody tr:hover td {
+  background: var(--surface-4) !important;
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ไอคอนปฏิทินของ input[type=date] เป็นสีดำโดยดีฟอลต์ กลับสีให้เห็นบนพื้นเข้ม */
+input[type="date"].form-control::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}

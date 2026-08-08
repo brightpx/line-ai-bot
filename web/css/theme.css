@@ -1,0 +1,293 @@
+/* ============================================================
+   theme.css — Design tokens + component overrides ที่ใช้ร่วมกัน
+   ใช้ทั้งใน dashboard.html และ admin.html
+   โหลดหลัง Bootstrap เสมอ เพื่อ override ค่า default
+   ============================================================ */
+
+:root {
+  /* Surfaces: ไล่จากมืดสุด (พื้นหลังหน้า) ไปสว่างขึ้นตามลำดับชั้น */
+  --surface-1: #0A0D12;
+  --surface-2: #0F131C;
+  --surface-3: #161D2B;
+  --surface-4: #1E2636;
+  --surface-5: #2A3447;
+
+  --accent: #38BDF8;
+  --accent-muted: #0EA5E9;
+
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+
+  --border: rgba(148, 163, 184, 0.12);
+
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-pill: 999px;
+
+  color-scheme: dark;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+/* ---------- Headings ---------- */
+
+h2,
+h5 {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.card-title {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-sm {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.85rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-muted));
+  border: none;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(56, 189, 248, 0.4);
+}
+
+.btn-outline-primary {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+}
+
+.btn-outline-primary:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-outline-secondary {
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+.btn-outline-secondary:hover {
+  background: var(--surface-3);
+  border-color: var(--text-secondary);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+  border: none;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(239, 68, 68, 0.4);
+}
+
+.btn-outline-danger {
+  border: 1px solid #EF4444;
+  color: #EF4444;
+  background: transparent;
+}
+
+.btn-outline-danger:hover {
+  background: #EF4444;
+  color: #fff;
+}
+
+.btn-group {
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.btn-close-white {
+  filter: brightness(1.5);
+}
+
+/* ---------- Forms ---------- */
+
+.form-control,
+.form-control:focus {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+}
+
+.form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ไอคอนปฏิทินของ input[type=date] เป็นสีดำโดย default จึงต้อง invert */
+input[type="date"].form-control::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+
+/* ---------- Badges ---------- */
+
+.badge {
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+}
+
+.badge.bg-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-muted)) !important;
+  color: #fff !important;
+}
+
+.badge.bg-warning {
+  background: linear-gradient(135deg, #FBBF24, #F59E0B) !important;
+  color: #000 !important;
+}
+
+.badge.bg-danger {
+  background: linear-gradient(135deg, #EF4444, #DC2626) !important;
+  color: #fff !important;
+}
+
+.badge.bg-success {
+  background: linear-gradient(135deg, #10B981, #059669) !important;
+  color: #fff !important;
+}
+
+.badge.bg-info {
+  background: linear-gradient(135deg, #06B6D4, #0891B2) !important;
+  color: #000 !important;
+}
+
+.badge.bg-secondary {
+  background: var(--surface-4) !important;
+  color: var(--text-secondary) !important;
+}
+
+.badge.bg-dark {
+  background: linear-gradient(135deg, var(--surface-4), var(--surface-5)) !important;
+  color: var(--text-primary) !important;
+}
+
+/* สีม่วง: ใช้สำหรับวันหยุดพี่เลี้ยง (ไม่มีใน Bootstrap) */
+.bg-purple,
+.badge.bg-purple {
+  background: linear-gradient(135deg, #A855F7, #8B5CF6) !important;
+  color: #fff !important;
+}
+
+.text-purple {
+  color: #A855F7 !important;
+}
+
+/* ---------- Tables ----------
+   ต้องใช้ !important เพราะ Bootstrap ตั้ง --bs-table-bg เป็นสีขาว
+   ผ่าน CSS variable ซึ่ง specificity ปกติ override ไม่ได้ */
+
+.table {
+  color: var(--text-primary) !important;
+  background: var(--surface-2) !important;
+}
+
+.table thead {
+  background: var(--surface-3) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.table thead th {
+  color: var(--text-primary) !important;
+  background: var(--surface-3) !important;
+  border-color: var(--border) !important;
+}
+
+.table tbody tr {
+  background: var(--surface-2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  transition: background 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background: var(--surface-3) !important;
+}
+
+.table tbody td {
+  color: var(--text-primary) !important;
+  background: var(--surface-2) !important;
+  border-color: var(--border) !important;
+}
+
+.table-responsive {
+  background: var(--surface-2) !important;
+}
+
+.table-borderless td,
+.table-borderless th {
+  border: none !important;
+}
+
+/* ---------- Lists ---------- */
+
+.list-group-item {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+  background: var(--surface-4);
+}
+
+/* ---------- Text utilities ---------- */
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.small {
+  color: var(--text-secondary);
+}
+
+.fw-semibold {
+  font-weight: 600;
+}
