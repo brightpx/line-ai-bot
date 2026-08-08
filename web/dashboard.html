@@ -114,6 +114,11 @@
         font-size: 0.85rem;
       }
 
+      .calendar-legend .badge {
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+      }
+
       .calendar-grid {
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -376,6 +381,7 @@
 
       .badge.bg-primary {
         background: linear-gradient(135deg, var(--accent), var(--accent-muted)) !important;
+        color: #fff !important;
       }
 
       .badge.bg-warning {
@@ -385,10 +391,12 @@
 
       .badge.bg-danger {
         background: linear-gradient(135deg, #EF4444, #DC2626) !important;
+        color: #fff !important;
       }
 
       .badge.bg-success {
         background: linear-gradient(135deg, #10B981, #059669) !important;
+        color: #fff !important;
       }
 
       .badge.bg-info {
@@ -401,26 +409,63 @@
         color: var(--text-secondary) !important;
       }
 
+      .badge.bg-purple {
+        background: linear-gradient(135deg, #A855F7, #8B5CF6) !important;
+        color: #fff !important;
+      }
+
+      .badge.bg-dark {
+        background: linear-gradient(135deg, var(--surface-4), var(--surface-5)) !important;
+        color: var(--text-primary) !important;
+      }
+
       .table {
-        color: var(--text-primary);
+        color: var(--text-primary) !important;
+        background: var(--surface-2) !important;
       }
 
       .table thead {
-        background: var(--surface-3);
-        border-bottom: 1px solid var(--border);
+        background: var(--surface-3) !important;
+        border-bottom: 1px solid var(--border) !important;
+      }
+
+      .table thead th {
+        color: var(--text-primary) !important;
+        border-color: var(--border) !important;
+        background: var(--surface-3) !important;
       }
 
       .table tbody tr {
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid var(--border) !important;
         transition: background 0.2s ease;
+        background: var(--surface-2) !important;
       }
 
       .table tbody tr:hover {
-        background: var(--surface-3);
+        background: var(--surface-3) !important;
+      }
+
+      .table tbody td {
+        color: var(--text-primary) !important;
+        border-color: var(--border) !important;
+        background: var(--surface-2) !important;
+      }
+
+      .table-responsive {
+        background: var(--surface-2) !important;
+      }
+
+      .table-borderless td,
+      .table-borderless th {
+        border: none !important;
       }
 
       .text-muted {
         color: var(--text-muted) !important;
+      }
+
+      .text-center {
+        color: var(--text-primary);
       }
 
       .display-6 {
@@ -635,7 +680,7 @@
               </div>
               <div class="table-responsive shadow-sm rounded-3 overflow-hidden">
                 <table class="table table-borderless mb-0 align-middle">
-                  <thead class="bg-light">
+                  <thead>
                     <tr>
                       <th>วันที่</th>
                       <th>เวร</th>

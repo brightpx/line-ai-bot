@@ -166,6 +166,48 @@
         border-radius: var(--radius-pill);
         overflow: hidden;
       }
+
+      .table-sm {
+        font-size: 0.9rem;
+        background: var(--surface-3);
+      }
+
+      .table-sm thead th {
+        padding: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary);
+        background: var(--surface-4);
+        border-color: var(--border);
+      }
+
+      .table-sm tbody td {
+        padding: 0.75rem;
+        vertical-align: middle;
+        background: var(--surface-3);
+        border-color: var(--border);
+      }
+
+      .table-sm tbody tr:hover td {
+        background: var(--surface-4);
+      }
+
+      textarea.form-control {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      input[type="date"].form-control::-webkit-calendar-picker-indicator {
+        filter: invert(0.8);
+        cursor: pointer;
+      }
+
+      .btn-sm {
+        font-size: 0.85rem;
+        padding: 0.35rem 0.85rem;
+      }
     </style>
   </head>
   <body>
