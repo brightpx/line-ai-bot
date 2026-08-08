@@ -70,7 +70,6 @@
         </div>
       </div>
 
-
       <div class="row g-4">
         <div class="col-xl-6">
           <div class="card chart-card shadow-sm fade-up delay-1">
@@ -380,11 +379,6 @@
         const counts = data.counts;
         const totalCount = document.getElementById('totalCount');
         animateValue(totalCount, Number(totalCount.textContent || 0), data.items.length, 500);
-        animateValue(document.getElementById('countMorning'), 0, counts.morning, 500);
-        animateValue(document.getElementById('countAfternoon'), 0, counts.afternoon, 500);
-        animateValue(document.getElementById('countEvening'), 0, counts.evening, 500);
-        animateValue(document.getElementById('countNight'), 0, counts.night, 500);
-        animateValue(document.getElementById('countOff'), 0, counts.off, 500);
 
         const holidays = Array.isArray(data.holidays) ? data.holidays : [];
         const caregiverHolidays = Array.isArray(data.caregiverHolidays) ? data.caregiverHolidays : [];
