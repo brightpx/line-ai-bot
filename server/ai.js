@@ -60,10 +60,19 @@ async function createMorningSummary({ shift, tomorrowShift }) {
   });
 }
 
-async function createArayaResponse({ userText, memoryText, scheduleText }) {
+async function createArayaResponse({ userText, memoryText, scheduleText, history }) {
   const memorySection = memoryText
     ? `\n\nข้อมูลที่บันทึกเพิ่มเติมจากครอบครัว\n\n${memoryText}`
     : "";
+
+  // ประวัติบทสนทนาก่อนหน้า (จำกัดจำนวนข้อความและความยาว เพื่อไม่ให้ context ยาวเกินไป)
+  const historyMessages = (Array.isArray(history) ? history : [])
+    .filter(m => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
+    .slice(-20)
+    .map(m => ({
+      role: m.role,
+      content: m.content.trim().substring(0, 2000)
+    }));
 
   const scheduleSection = scheduleText
     ? `\n\nตารางเวรของแม่มุก\n\n${scheduleText}`
@@ -121,6 +130,7 @@ async function createArayaResponse({ userText, memoryText, scheduleText }) {
           ${scheduleSection}
         `
       },
+      ...historyMessages,
       {
         role: "user",
         content: userText

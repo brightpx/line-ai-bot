@@ -1,7 +1,7 @@
 ﻿const express = require("express");
 const path = require("path");
 
-const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift, deleteWorkScheduleEntry, upsertCaregiverHoliday, deleteCaregiverHolidayByDate, getCaregiverHolidaysPaged, getCaregiverHolidaysByMonth, getMemoriesPaged, deleteMemoryById, updateMemory, getWorkSchedulePaged } = require("./db");
+const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift, deleteWorkScheduleEntry, upsertCaregiverHoliday, deleteCaregiverHolidayByDate, getCaregiverHolidaysPaged, getCaregiverHolidaysByMonth, getMemoriesPaged, deleteMemoryById, updateMemory, getWorkSchedulePaged, saveChatMessage, getChatHistory, clearChatHistory } = require("./db");
 const { replyText, pushText } = require("./lineApi");
 const { createMorningSummary, createArayaResponse } = require("./ai");
 const getShiftCategory = require("../shared/shiftCategory");
@@ -266,6 +266,35 @@ app.get("/api/schedule", async (req, res) => {
   }
 });
 
+function getChatSessionId(value, fallback) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim().substring(0, 64);
+  }
+  return fallback;
+}
+
+app.get('/api/chat', async (req, res) => {
+  try {
+    const sessionId = getChatSessionId(req.query.sessionId, 'dashboard');
+    const messages = await getChatHistory(sessionId, 50);
+    res.json({ messages });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load chat history' });
+  }
+});
+
+app.delete('/api/chat', async (req, res) => {
+  try {
+    const sessionId = getChatSessionId(req.query.sessionId, 'dashboard');
+    await clearChatHistory(sessionId);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to clear chat history' });
+  }
+});
+
 app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body;
@@ -273,12 +302,17 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'message is required' });
     }
 
+    const sessionId = getChatSessionId(req.body.sessionId, 'dashboard');
     const memories = await loadMemory();
     const memoryText = memories.map(x => `- ${x.content}`).join("\n");
     const scheduleResult = await getAllWorkSchedule();
     const scheduleText = scheduleResult.map(x => `${x.work_date.toISOString().slice(0, 10)} : ${x.shift}`).join("\n");
-    const completion = await createArayaResponse({ userText: message, memoryText, scheduleText });
+    const history = await getChatHistory(sessionId, 20);
+    const completion = await createArayaResponse({ userText: message, memoryText, scheduleText, history });
     const answer = completion?.choices?.[0]?.message?.content?.trim() || "ขออภัยค่ะ อารายายังไม่สามารถตอบได้ในขณะนี้";
+
+    await saveChatMessage(sessionId, 'user', message);
+    await saveChatMessage(sessionId, 'assistant', answer);
 
     res.json({ reply: answer });
   } catch (err) {
@@ -434,12 +468,19 @@ app.post("/webhook", async (req, res) => {
     }
 
     try {
+      // จำบทสนทนาแยกตามกลุ่ม/ผู้ใช้ใน LINE
+      const lineSessionId = (event.source && (event.source.groupId || event.source.userId)) || 'line';
       const memories = await loadMemory();
       const memoryText = memories.map(x => `- ${x.content}`).join("\n");
       const scheduleResult = await getAllWorkSchedule();
       const scheduleText = scheduleResult.map(x => `${x.work_date.toISOString().slice(0, 10)} : ${x.shift}`).join("\n");
-      const completion = await createArayaResponse({ userText: prompt, memoryText, scheduleText });
+      const history = await getChatHistory(lineSessionId, 20);
+      const completion = await createArayaResponse({ userText: prompt, memoryText, scheduleText, history });
       const answer = completion?.choices?.[0]?.message?.content?.trim() || "ขออภัยค่ะ อารายายังไม่สามารถตอบได้ในขณะนี้";
+
+      await saveChatMessage(lineSessionId, 'user', prompt);
+      await saveChatMessage(lineSessionId, 'assistant', answer);
+
       await replyText(event.replyToken, answer);
     } catch (err) {
       console.error(err);

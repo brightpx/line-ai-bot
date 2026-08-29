@@ -38,6 +38,21 @@ async function initDb() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id SERIAL PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_session
+    ON chat_messages (session_id, id)
+  `);
 }
 
 async function loadMemory(limit = 100) {
@@ -295,6 +310,45 @@ async function getCurrentMonthWorkSchedule(year, month) {
   return result.rows;
 }
 
+async function saveChatMessage(sessionId, role, content) {
+  await pool.query(
+    `
+      INSERT INTO chat_messages (session_id, role, content)
+      VALUES ($1, $2, $3)
+    `,
+    [sessionId, role, content]
+  );
+}
+
+async function getChatHistory(sessionId, limit = 20) {
+  const safeLimit = Math.max(1, Math.min(100, Number(limit) || 20));
+  const result = await pool.query(
+    `
+      SELECT role, content
+      FROM (
+        SELECT id, role, content
+        FROM chat_messages
+        WHERE session_id = $1
+        ORDER BY id DESC
+        LIMIT $2
+      ) recent
+      ORDER BY id ASC
+    `,
+    [sessionId, safeLimit]
+  );
+  return result.rows;
+}
+
+async function clearChatHistory(sessionId) {
+  await pool.query(
+    `
+      DELETE FROM chat_messages
+      WHERE session_id = $1
+    `,
+    [sessionId]
+  );
+}
+
 module.exports = {
   initDb,
   loadMemory,
@@ -314,5 +368,8 @@ module.exports = {
   getMemoriesPaged,
   deleteMemoryById,
   updateMemory,
-  getWorkSchedulePaged
+  getWorkSchedulePaged,
+  saveChatMessage,
+  getChatHistory,
+  clearChatHistory
 };

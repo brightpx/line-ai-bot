@@ -152,7 +152,10 @@
             <h6 class="mb-0">แชทกับ AI</h6>
             <small class="text-white-50">ถามอารายาเกี่ยวกับตารางเวรหรือความทรงจำ</small>
           </div>
-          <button type="button" class="btn-close btn-close-white" aria-label="Close" id="chatCloseBtn"></button>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-light" id="chatClearBtn" title="ล้างบทสนทนาและเริ่มคุยใหม่">ล้าง</button>
+            <button type="button" class="btn-close btn-close-white" aria-label="Close" id="chatCloseBtn"></button>
+          </div>
         </div>
         <div id="chatMessages" class="chat-body p-3 d-flex flex-column"></div>
         <div class="chat-footer p-3">
@@ -505,6 +508,37 @@
         status.style.color = isError ? '#dc3545' : '';
       }
 
+      // ---- ประวัติบทสนทนา (ให้ AI จำบทสนทนาก่อนหน้า) ----
+      const CHAT_SESSION_KEY = 'arayaChatSessionId';
+      let chatSessionId = localStorage.getItem(CHAT_SESSION_KEY);
+      if (!chatSessionId) {
+        chatSessionId = 'web-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+        localStorage.setItem(CHAT_SESSION_KEY, chatSessionId);
+      }
+
+      async function loadChatHistory() {
+        try {
+          const response = await fetch(`/api/chat?sessionId=${encodeURIComponent(chatSessionId)}`);
+          if (!response.ok) return;
+          const data = await response.json();
+          (data.messages || []).forEach(m => appendChatMessage(m.content, m.role === 'user' ? 'user' : 'ai'));
+        } catch (err) {
+          console.error('โหลดประวัติแชทไม่สำเร็จ:', err);
+        }
+      }
+
+      async function clearChatHistory() {
+        try {
+          await fetch(`/api/chat?sessionId=${encodeURIComponent(chatSessionId)}`, { method: 'DELETE' });
+        } catch (err) {
+          console.error('ล้างประวัติแชทไม่สำเร็จ:', err);
+        }
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) chatMessages.innerHTML = '';
+        appendChatMessage('ล้างบทสนทนาเรียบร้อยแล้วค่ะ เริ่มคุยใหม่ได้เลยนะคะ 💕', 'ai');
+        setChatStatus('พร้อมใช้งาน');
+      }
+
       async function sendChatMessage() {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
@@ -519,7 +553,7 @@
           const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text })
+            body: JSON.stringify({ message: text, sessionId: chatSessionId })
           });
 
           if (!response.ok) {
@@ -548,6 +582,7 @@
         const chatInput = document.getElementById('chatInput');
         const chatToggleBtn = document.getElementById('chatToggleBtn');
         const chatCloseBtn = document.getElementById('chatCloseBtn');
+        const chatClearBtn = document.getElementById('chatClearBtn');
         const chatWindow = document.getElementById('chatWindow');
 
         if (chatSendBtn) chatSendBtn.addEventListener('click', sendChatMessage);
@@ -574,6 +609,12 @@
             if (chatWindow) chatWindow.classList.add('hidden');
           });
         }
+
+        if (chatClearBtn) {
+          chatClearBtn.addEventListener('click', clearChatHistory);
+        }
+
+        loadChatHistory();
 
         updateMonthLabel();
         loadDashboard().catch(err => {
