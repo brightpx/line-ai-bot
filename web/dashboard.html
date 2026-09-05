@@ -83,6 +83,21 @@
               <canvas id="shiftChart"></canvas>
             </div>
           </div>
+          <div class="card routine-card fade-up delay-3 mt-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 class="card-title mb-1">ตารางกิจกรรมรายชั่วโมง</h5>
+                  <p class="text-muted mb-0">คำแนะนำจาก AI: ริริญอายุเท่านี้ควรทำอะไรบ้างใน 1 วัน</p>
+                </div>
+                <button id="routineRefreshBtn" class="btn btn-sm btn-outline-primary" title="สร้างใหม่จาก AI">🔄 สร้างใหม่</button>
+              </div>
+              <div id="routineAgeBadge" class="mb-3"></div>
+              <div id="routineGuideBody">
+                <div class="text-muted">กำลังโหลดตารางกิจกรรม...</div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="col-xl-6">
           <div class="card table-card fade-up delay-2">
@@ -129,21 +144,6 @@
               <ul id="holidayList" class="list-group list-group-flush">
                 <li class="list-group-item text-muted">กำลังโหลดวันหยุด...</li>
               </ul>
-            </div>
-          </div>
-          <div class="card table-card fade-up delay-4 mt-4">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                  <h5 class="card-title mb-1">ตารางกิจกรรมรายชั่วโมง</h5>
-                  <p class="text-muted mb-0">คำแนะนำจาก AI: ริริญอายุเท่านี้ควรทำอะไรบ้างใน 1 วัน</p>
-                </div>
-                <button id="routineRefreshBtn" class="btn btn-sm btn-outline-primary" title="สร้างใหม่จาก AI">🔄 สร้างใหม่</button>
-              </div>
-              <div id="routineAgeBadge" class="mb-3"></div>
-              <div id="routineGuideBody">
-                <div class="text-muted">กำลังโหลดตารางกิจกรรม...</div>
-              </div>
             </div>
           </div>
           <div class="card table-card fade-up delay-4 mt-4">
@@ -220,7 +220,7 @@
         if (!body) return;
 
         if (badge) {
-          badge.innerHTML = `<span class="badge bg-primary fs-6">ริริญอายุ ${ageInMonths} เดือน</span>`;
+          badge.innerHTML = `<span class="routine-age-badge">ริริญอายุ ${ageInMonths} เดือน</span>`;
         }
 
         if (!guide) {
@@ -238,21 +238,21 @@
           const parts = line.split('|').map(p => p.trim());
           if (!inNotes && parts.length >= 3 && /^\d{1,2}:\d{2}/.test(parts[0])) {
             scheduleHtml += `
-              <div class="d-flex align-items-start gap-3 py-2 border-bottom">
-                <span class="badge bg-light text-dark border" style="min-width:110px">${escapeHtml(parts[0])}</span>
-                <div>
-                  <div class="fw-semibold">${escapeHtml(parts[1])}</div>
-                  <div class="text-muted small">${escapeHtml(parts.slice(2).join(' — '))}</div>
+              <div class="routine-item">
+                <span class="routine-time">${escapeHtml(parts[0])}</span>
+                <div class="routine-detail">
+                  <div class="routine-activity">${escapeHtml(parts[1])}</div>
+                  <div class="routine-desc">${escapeHtml(parts.slice(2).join(' — '))}</div>
                 </div>
               </div>`;
           } else if (inNotes) {
-            notesHtml += `<li class="text-muted small">${escapeHtml(line.replace(/^[-•*\d.)\s]+/, ''))}</li>`;
+            notesHtml += `<li>${escapeHtml(line.replace(/^[-•*\d.)\s]+/, ''))}</li>`;
           }
         }
 
         body.innerHTML = `
-          ${scheduleHtml || `<div class="text-muted" style="white-space:pre-wrap">${escapeHtml(guide)}</div>`}
-          ${notesHtml ? `<div class="mt-3"><h6 class="mb-2">หมายเหตุสำคัญ</h6><ul class="ps-3 mb-0">${notesHtml}</ul></div>` : ''}
+          <div class="routine-schedule">${scheduleHtml || `<div class="text-muted" style="white-space:pre-wrap">${escapeHtml(guide)}</div>`}</div>
+          ${notesHtml ? `<div class="routine-notes"><h6 class="mb-2">หมายเหตุสำคัญ</h6><ul class="ps-3 mb-0">${notesHtml}</ul></div>` : ''}
         `;
       }
 
