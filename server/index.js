@@ -457,11 +457,13 @@ app.post("/webhook", async (req, res) => {
       continue;
     }
 
-    if (!userText.startsWith("อารายา") && !userText.startsWith("อารยา")) {
+    // รองรับการเรียกบอทด้วย @ เช่น "@อารายา สวัสดี" หรือพิมพ์ชื่อตรง ๆ เช่น "อารายา สวัสดี"
+    const mentionMatch = userText.match(/^@?(อารายา|อารยา)\s*/i);
+    if (!mentionMatch) {
       continue;
     }
 
-    const prompt = userText.replace(/^อารายา\s*/i, "").replace(/^อารยา\s*/i, "").trim();
+    const prompt = userText.slice(mentionMatch[0].length).trim();
     if (!prompt) {
       await replyText(event.replyToken, "มีอะไรให้อารายาช่วยไหมคะ 💕");
       continue;
