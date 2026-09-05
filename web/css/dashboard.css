@@ -21,16 +21,22 @@
 }
 
 .hero-card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
   transition: all 0.3s ease;
 }
 
 .hero-card:hover {
-  box-shadow: 0 8px 32px rgba(56, 189, 248, 0.2);
-  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 12px 40px rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.35);
 }
 
 .display-6 {
@@ -44,31 +50,43 @@
 /* ---------- Stat & chart cards ---------- */
 
 .stat-card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
   transition: all 0.3s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(56, 189, 248, 0.2);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 12px 36px rgba(56, 189, 248, 0.22);
   border-color: rgba(56, 189, 248, 0.4);
 }
 
 .chart-card {
   min-height: 420px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
 
 .table-card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
 }
 
 .badge-category {
@@ -81,10 +99,14 @@
 /* ---------- ตารางกิจกรรมรายชั่วโมง (Routine guide) ---------- */
 
 .routine-card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
 }
 
 .routine-age-badge {
@@ -93,9 +115,14 @@
   border-radius: var(--radius-pill);
   font-weight: 600;
   font-size: 0.95rem;
-  color: #062033;
-  background: linear-gradient(135deg, #7DD3FC, #38BDF8);
-  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+  color: #E0F2FE;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 2px 10px rgba(56, 189, 248, 0.2);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .routine-schedule {
@@ -114,7 +141,7 @@
 }
 
 .routine-item:hover {
-  background: var(--surface-3);
+  background: rgba(148, 163, 184, 0.10);
 }
 
 .routine-time {
@@ -126,7 +153,8 @@
   font-size: 0.85rem;
   color: #7DD3FC;
   background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
   border-radius: var(--radius-pill);
   padding: 0.3rem 0.6rem;
 }
@@ -147,8 +175,11 @@
   margin-top: 1.1rem;
   padding: 0.9rem 1.1rem;
   border-radius: var(--radius-md);
-  background: rgba(251, 191, 36, 0.08);
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  background: rgba(251, 191, 36, 0.10);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .routine-notes h6 {
@@ -185,10 +216,12 @@
 
 .calendar-day {
   min-height: 120px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   padding: 0.85rem;
-  background: var(--surface-3);
+  background: rgba(148, 163, 184, 0.06);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -197,12 +230,12 @@
 }
 
 .calendar-day:hover {
-  background: var(--surface-4);
-  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(56, 189, 248, 0.35);
 }
 
 .calendar-day.header {
-  background: var(--surface-2);
+  background: rgba(148, 163, 184, 0.04);
   font-weight: 700;
   text-align: center;
   border-color: var(--border);
@@ -296,10 +329,14 @@
 
 .chat-window {
   width: 100%;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 24px 60px rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -317,7 +354,7 @@
 }
 
 .chat-body {
-  background: var(--surface-3);
+  background: rgba(10, 13, 18, 0.35);
   min-height: 220px;
   max-height: 260px;
   overflow-y: auto;
@@ -342,8 +379,8 @@
 }
 
 .chat-footer {
-  background: var(--surface-2);
-  border-top: 1px solid var(--border);
+  background: rgba(10, 13, 18, 0.35);
+  border-top: 1px solid var(--glass-border);
   padding: 1rem;
 }
 
@@ -365,11 +402,13 @@
 }
 
 .chat-bubble.ai {
-  background: var(--surface-3);
+  background: rgba(148, 163, 184, 0.12);
   color: var(--text-primary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   align-self: flex-start;
   border-bottom-left-radius: 0.4rem;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .chat-toggle-btn {
@@ -377,8 +416,10 @@
   height: 56px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), var(--accent-muted));
-  box-shadow: 0 8px 24px rgba(56, 189, 248, 0.4);
-  border: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 8px 24px rgba(56, 189, 248, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #fff;
   font-weight: 700;
   font-size: 1.1rem;

@@ -21,6 +21,13 @@
 
   --border: rgba(148, 163, 184, 0.12);
 
+  /* Liquid Glass tokens (สไตล์ iOS) */
+  --glass-bg: rgba(22, 29, 43, 0.55);
+  --glass-bg-strong: rgba(30, 38, 54, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+  --glass-blur: 24px;
+
   --radius-sm: 0.75rem;
   --radius-md: 1rem;
   --radius-lg: 1.5rem;
@@ -37,6 +44,20 @@ body {
   line-height: 1.6;
 }
 
+/* Ambient light blobs แบบ iOS — แสงสีลอยด้านหลัง ทำให้ glass cards มีแสงให้หักเห */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 620px at 12% -8%, rgba(56, 189, 248, 0.18), transparent 60%),
+    radial-gradient(820px 560px at 88% 12%, rgba(168, 85, 247, 0.15), transparent 62%),
+    radial-gradient(760px 540px at 55% 112%, rgba(14, 165, 233, 0.13), transparent 60%),
+    radial-gradient(480px 380px at 78% 62%, rgba(59, 130, 246, 0.08), transparent 65%);
+}
+
 /* ---------- Headings ---------- */
 
 h2,
@@ -48,10 +69,15 @@ h5 {
 /* ---------- Cards ---------- */
 
 .card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  position: relative;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
 }
 
 .card-body {
@@ -80,6 +106,9 @@ h5 {
   background: linear-gradient(135deg, var(--accent), var(--accent-muted));
   border: none;
   color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 14px rgba(56, 189, 248, 0.25);
 }
 
 .btn-primary:hover {
@@ -88,9 +117,11 @@ h5 {
 }
 
 .btn-outline-primary {
-  border: 1px solid var(--accent);
+  border: 1px solid rgba(56, 189, 248, 0.55);
   color: var(--accent);
-  background: transparent;
+  background: rgba(56, 189, 248, 0.10);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .btn-outline-primary:hover {
@@ -99,13 +130,15 @@ h5 {
 }
 
 .btn-outline-secondary {
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   color: var(--text-secondary);
-  background: transparent;
+  background: rgba(148, 163, 184, 0.08);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .btn-outline-secondary:hover {
-  background: var(--surface-3);
+  background: rgba(148, 163, 184, 0.16);
   border-color: var(--text-secondary);
 }
 
@@ -144,10 +177,12 @@ h5 {
 
 .form-control,
 .form-control:focus {
-  background: var(--surface-3);
-  border: 1px solid var(--border);
+  background: rgba(22, 29, 43, 0.60);
+  border: 1px solid var(--glass-border);
   color: var(--text-primary);
   border-radius: var(--radius-sm);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .form-control:focus {
@@ -172,6 +207,7 @@ input[type="date"].form-control::-webkit-calendar-picker-indicator {
   border-radius: var(--radius-pill);
   font-weight: 600;
   padding: 0.4rem 0.8rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .badge.bg-primary {
@@ -226,38 +262,38 @@ input[type="date"].form-control::-webkit-calendar-picker-indicator {
 
 .table {
   color: var(--text-primary) !important;
-  background: var(--surface-2) !important;
+  background: transparent !important;
 }
 
 .table thead {
-  background: var(--surface-3) !important;
-  border-bottom: 1px solid var(--border) !important;
+  background: rgba(148, 163, 184, 0.08) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
 }
 
 .table thead th {
   color: var(--text-primary) !important;
-  background: var(--surface-3) !important;
+  background: transparent !important;
   border-color: var(--border) !important;
 }
 
 .table tbody tr {
-  background: var(--surface-2) !important;
+  background: transparent !important;
   border-bottom: 1px solid var(--border) !important;
   transition: background 0.2s ease;
 }
 
 .table tbody tr:hover {
-  background: var(--surface-3) !important;
+  background: rgba(148, 163, 184, 0.10) !important;
 }
 
 .table tbody td {
   color: var(--text-primary) !important;
-  background: var(--surface-2) !important;
+  background: transparent !important;
   border-color: var(--border) !important;
 }
 
 .table-responsive {
-  background: var(--surface-2) !important;
+  background: transparent !important;
 }
 
 .table-borderless td,
@@ -268,14 +304,15 @@ input[type="date"].form-control::-webkit-calendar-picker-indicator {
 /* ---------- Lists ---------- */
 
 .list-group-item {
-  background: var(--surface-3);
+  background: rgba(148, 163, 184, 0.06);
   border: 1px solid var(--border);
   color: var(--text-primary);
+  border-radius: var(--radius-sm);
   transition: all 0.2s ease;
 }
 
 .list-group-item:hover {
-  background: var(--surface-4);
+  background: rgba(148, 163, 184, 0.12);
 }
 
 /* ---------- Text utilities ---------- */
@@ -290,4 +327,16 @@ input[type="date"].form-control::-webkit-calendar-picker-indicator {
 
 .fw-semibold {
   font-weight: 600;
+}
+
+/* Fallback: เบราว์เซอร์ที่ไม่รองรับ backdrop-filter ใช้พื้นทึบแทน เพื่อไม่ให้อ่านไม่ออก */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .card {
+    background: var(--surface-2);
+  }
+
+  .form-control,
+  .form-control:focus {
+    background: var(--surface-3);
+  }
 }
