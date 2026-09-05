@@ -495,13 +495,31 @@ app.post("/webhook", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-initDb()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server started on ${PORT}`);
-    });
-  })
-  .catch(err => {
-    console.error("Failed to initialize database:", err);
-    process.exit(1);
-  });
+// Start HTTP server ทันที เพื่อไม่ให้ /ping คืน 503 ขณะ DB ยังไม่พร้อม
+// (เดิม: ถ้า initDb ล้มเหลว process จะ exit ทันที ทำให้ Render ตอบ 503 ทั้ง service)
+let dbReady = false;
+
+app.listen(PORT, () => {
+  console.log(`Server started on ${PORT}`);
+});
+
+// init ฐานข้อมูลแบบ retry ไม่จำกัดจำนวนครั้ง เผื่อ DB ยังไม่พร้อมตอน boot
+(async () => {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await initDb();
+      dbReady = true;
+      console.log("Database initialized successfully");
+      break;
+    } catch (err) {
+      console.error(`Database init failed (attempt ${attempt}):`, err.message);
+      // รอเพิ่มขึ้นเรื่อยๆ แต่ไม่เกิน 30 วินาที แล้วลองใหม่
+      await new Promise(resolve => setTimeout(resolve, Math.min(30000, 5000 * attempt)));
+    }
+  }
+})();
+
+// Endpoint ไว้เช็คสถานะ DB (นอกเหนือจาก /ping ที่ตอบ 200 เสมอ)
+app.get("/health", (req, res) => {
+  res.json({ ok: true, db: dbReady ? "connected" : "not_ready" });
+});
