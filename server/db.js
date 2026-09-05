@@ -12,6 +12,10 @@ const pool = new Pool({
   }
 });
 
+// Timezone ของแอป — ใช้คำนวณ "วันนี้/พรุ่งนี้" ในฝั่ง SQL ให้ตรงกับเวลาไทย
+// (DB บน Render เป็น UTC ถ้าใช้ CURRENT_DATE ตรง ๆ ช่วง 00:00-06:59 น. ไทย จะนับผิดไป 1 วัน)
+const APP_TIMEZONE = process.env.APP_TIMEZONE || "Asia/Bangkok";
+
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS memories (
@@ -269,8 +273,9 @@ async function getTodayShift() {
     `
       SELECT shift
       FROM work_schedule
-      WHERE work_date = CURRENT_DATE
-    `
+      WHERE work_date = (NOW() AT TIME ZONE $1)::date
+    `,
+    [APP_TIMEZONE]
   );
 
   return result.rows.length > 0 ? result.rows[0].shift : null;
@@ -281,8 +286,9 @@ async function getTomorrowShift() {
     `
       SELECT shift
       FROM work_schedule
-      WHERE work_date = CURRENT_DATE + INTERVAL '1 day'
-    `
+      WHERE work_date = ((NOW() AT TIME ZONE $1)::date + 1)
+    `,
+    [APP_TIMEZONE]
   );
 
   return result.rows.length > 0 ? result.rows[0].shift : null;
@@ -349,6 +355,18 @@ async function clearChatHistory(sessionId) {
   );
 }
 
+// ลบประวัติแชทที่เก่ากว่าจำนวนวันที่กำหนด (คืนจำนวนแถวที่ลบ)
+async function deleteOldChatMessages(days = 30) {
+  const result = await pool.query(
+    `
+      DELETE FROM chat_messages
+      WHERE created_at < NOW() - make_interval(days => $1::int)
+    `,
+    [days]
+  );
+  return result.rowCount || 0;
+}
+
 module.exports = {
   initDb,
   loadMemory,
@@ -371,5 +389,6 @@ module.exports = {
   getWorkSchedulePaged,
   saveChatMessage,
   getChatHistory,
-  clearChatHistory
+  clearChatHistory,
+  deleteOldChatMessages
 };

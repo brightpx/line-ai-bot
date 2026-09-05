@@ -1,7 +1,7 @@
 ﻿const express = require("express");
 const path = require("path");
 
-const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift, deleteWorkScheduleEntry, upsertCaregiverHoliday, deleteCaregiverHolidayByDate, getCaregiverHolidaysPaged, getCaregiverHolidaysByMonth, getMemoriesPaged, deleteMemoryById, updateMemory, getWorkSchedulePaged, saveChatMessage, getChatHistory, clearChatHistory } = require("./db");
+const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift, deleteWorkScheduleEntry, upsertCaregiverHoliday, deleteCaregiverHolidayByDate, getCaregiverHolidaysPaged, getCaregiverHolidaysByMonth, getMemoriesPaged, deleteMemoryById, updateMemory, getWorkSchedulePaged, saveChatMessage, getChatHistory, clearChatHistory, deleteOldChatMessages } = require("./db");
 const { replyText, pushText } = require("./lineApi");
 const { createMorningSummary, createArayaResponse } = require("./ai");
 const getShiftCategory = require("../shared/shiftCategory");
@@ -504,6 +504,8 @@ app.listen(PORT, () => {
 });
 
 // init ฐานข้อมูลแบบ retry ไม่จำกัดจำนวนครั้ง เผื่อ DB ยังไม่พร้อมตอน boot
+let chatCleanupTimer = null;
+
 (async () => {
   for (let attempt = 1; ; attempt++) {
     try {
@@ -517,6 +519,21 @@ app.listen(PORT, () => {
       await new Promise(resolve => setTimeout(resolve, Math.min(30000, 5000 * attempt)));
     }
   }
+
+  // ล้างประวัติแชทเก่ากว่า 30 วัน วันละครั้ง (เริ่มรอบแรกหลัง initDb สำเร็จ)
+  const CHAT_RETENTION_DAYS = 30;
+  const runChatCleanup = async () => {
+    try {
+      const deleted = await deleteOldChatMessages(CHAT_RETENTION_DAYS);
+      if (deleted > 0) console.log(`Chat cleanup: deleted ${deleted} old messages (> ${CHAT_RETENTION_DAYS} days)`);
+    } catch (err) {
+      console.error("Chat cleanup failed:", err.message);
+    }
+  };
+
+  await runChatCleanup();
+  chatCleanupTimer = setInterval(runChatCleanup, 24 * 60 * 60 * 1000);
+  chatCleanupTimer.unref?.(); // ไม่ให้ timer ขวางการ shutdown ของ process
 })();
 
 // Endpoint ไว้เช็คสถานะ DB (นอกเหนือจาก /ping ที่ตอบ 200 เสมอ)
