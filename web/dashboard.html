@@ -135,6 +135,21 @@
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
+                  <h5 class="card-title mb-1">ตารางกิจกรรมรายชั่วโมง</h5>
+                  <p class="text-muted mb-0">คำแนะนำจาก AI: ริริญอายุเท่านี้ควรทำอะไรบ้างใน 1 วัน</p>
+                </div>
+                <button id="routineRefreshBtn" class="btn btn-sm btn-outline-primary" title="สร้างใหม่จาก AI">🔄 สร้างใหม่</button>
+              </div>
+              <div id="routineAgeBadge" class="mb-3"></div>
+              <div id="routineGuideBody">
+                <div class="text-muted">กำลังโหลดตารางกิจกรรม...</div>
+              </div>
+            </div>
+          </div>
+          <div class="card table-card fade-up delay-4 mt-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
                   <h5 class="card-title mb-1">แชทกับ AI</h5>
                   <p class="text-muted mb-0">ถามอารายาเกี่ยวกับตารางเวรหรือข้อมูลความทรงจำ</p>
                 </div>
@@ -191,6 +206,77 @@
       function formatMonthLabel(year, month) {
         return `${monthNames[month - 1]} ${year}`;
       }
+
+      // ===== ตารางกิจกรรมรายชั่วโมงจาก AI =====
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+
+      function renderRoutineGuide(guide, ageInMonths) {
+        const body = document.getElementById('routineGuideBody');
+        const badge = document.getElementById('routineAgeBadge');
+        if (!body) return;
+
+        if (badge) {
+          badge.innerHTML = `<span class="badge bg-primary fs-6">ริริญอายุ ${ageInMonths} เดือน</span>`;
+        }
+
+        if (!guide) {
+          body.innerHTML = '<div class="text-danger">ไม่สามารถสร้างตารางกิจกรรมได้ ลองกด "สร้างใหม่" อีกครั้ง</div>';
+          return;
+        }
+
+        const lines = guide.split('\n').map(l => l.trim()).filter(Boolean);
+        let scheduleHtml = '';
+        let notesHtml = '';
+        let inNotes = false;
+
+        for (const line of lines) {
+          if (/หมายเหตุ/i.test(line)) { inNotes = true; continue; }
+          const parts = line.split('|').map(p => p.trim());
+          if (!inNotes && parts.length >= 3 && /^\d{1,2}:\d{2}/.test(parts[0])) {
+            scheduleHtml += `
+              <div class="d-flex align-items-start gap-3 py-2 border-bottom">
+                <span class="badge bg-light text-dark border" style="min-width:110px">${escapeHtml(parts[0])}</span>
+                <div>
+                  <div class="fw-semibold">${escapeHtml(parts[1])}</div>
+                  <div class="text-muted small">${escapeHtml(parts.slice(2).join(' — '))}</div>
+                </div>
+              </div>`;
+          } else if (inNotes) {
+            notesHtml += `<li class="text-muted small">${escapeHtml(line.replace(/^[-•*\d.)\s]+/, ''))}</li>`;
+          }
+        }
+
+        body.innerHTML = `
+          ${scheduleHtml || `<div class="text-muted" style="white-space:pre-wrap">${escapeHtml(guide)}</div>`}
+          ${notesHtml ? `<div class="mt-3"><h6 class="mb-2">หมายเหตุสำคัญ</h6><ul class="ps-3 mb-0">${notesHtml}</ul></div>` : ''}
+        `;
+      }
+
+      async function loadRoutineGuide(force = false) {
+        const body = document.getElementById('routineGuideBody');
+        const refreshBtn = document.getElementById('routineRefreshBtn');
+        if (!body) return;
+
+        if (refreshBtn) refreshBtn.disabled = true;
+        if (force) body.innerHTML = '<div class="text-muted">กำลังสร้างตารางใหม่จาก AI... (ใช้เวลาสักครู่)</div>';
+
+        try {
+          const response = await fetch(`/api/routine-guide${force ? '?refresh=1' : ''}`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          renderRoutineGuide(data.guide, data.ageInMonths);
+        } catch (err) {
+          body.innerHTML = `<div class="text-danger">เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</div>`;
+          console.error(err);
+        } finally {
+          if (refreshBtn) refreshBtn.disabled = false;
+        }
+      }
+      // ===== จบตารางกิจกรรม =====
 
       const RIRIN_BIRTH_DATE = new Date(2026, 2, 12); // 12/3/2026
 
@@ -576,6 +662,9 @@
 
       document.addEventListener('DOMContentLoaded', () => {
         renderRirinAge();
+        loadRoutineGuide(false);
+        const routineRefreshBtn = document.getElementById('routineRefreshBtn');
+        if (routineRefreshBtn) routineRefreshBtn.addEventListener('click', () => loadRoutineGuide(true));
         document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonth(-1));
         document.getElementById('nextMonthBtn').addEventListener('click', () => changeMonth(1));
         const chatSendBtn = document.getElementById('chatSendBtn');

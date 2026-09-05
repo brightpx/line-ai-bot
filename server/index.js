@@ -3,7 +3,7 @@ const path = require("path");
 
 const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeyword, upsertWorkScheduleEntry, getAllWorkSchedule, getCurrentMonthWorkSchedule, getTodayShift, getTomorrowShift, deleteWorkScheduleEntry, upsertCaregiverHoliday, deleteCaregiverHolidayByDate, getCaregiverHolidaysPaged, getCaregiverHolidaysByMonth, getMemoriesPaged, deleteMemoryById, updateMemory, getWorkSchedulePaged, saveChatMessage, getChatHistory, clearChatHistory, deleteOldChatMessages } = require("./db");
 const { replyText, pushText } = require("./lineApi");
-const { createMorningSummary, createArayaResponse } = require("./ai");
+const { createMorningSummary, createArayaResponse, createDailyRoutineGuide } = require("./ai");
 const getShiftCategory = require("../shared/shiftCategory");
 const Holidays = require("date-holidays");
 
@@ -323,6 +323,47 @@ app.post('/api/chat', async (req, res) => {
 
 app.get("/dashboard", (req, res) => {
   res.redirect("/");
+});
+
+// วันเกิดริริญ (12 มี.ค. 2026) — ใช้เวลาไทยในการคำนวณอายุ
+const RIRIN_BIRTH_ISO = "2026-03-12";
+let routineGuideCache = { ageInMonths: -1, text: null, createdAt: 0 };
+
+app.get("/api/routine-guide", async (req, res) => {
+  try {
+    // คำนวณอายุเป็นเดือนตามเวลาไทย (เอาเวลาไทยมาลบวันเกิดแล้วหารประมาณเป็นเดือน)
+    const nowTh = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+    const birth = new Date(`${RIRIN_BIRTH_ISO}T00:00:00`);
+
+    let ageInMonths = (nowTh.getFullYear() - birth.getFullYear()) * 12 + (nowTh.getMonth() - birth.getMonth());
+    if (nowTh.getDate() < birth.getDate()) ageInMonths -= 1;
+    if (ageInMonths < 0) ageInMonths = 0;
+
+    // cache ตามอายุ (เดือน) ไม่เกิน 12 ชม. — ไม่ต้องเสีย quota AI ทุกครั้งที่เปิดหน้า
+    // (?refresh=1 = บังคับสร้างใหม่จากปุ่ม "สร้างใหม่")
+    const forceRefresh = req.query.refresh === "1";
+    const cacheValid =
+      !forceRefresh &&
+      routineGuideCache.text &&
+      routineGuideCache.ageInMonths === ageInMonths &&
+      Date.now() - routineGuideCache.createdAt < 12 * 60 * 60 * 1000;
+
+    if (cacheValid) {
+      return res.json({ ageInMonths, guide: routineGuideCache.text, cached: true });
+    }
+
+    const completion = await createDailyRoutineGuide({ ageInMonths });
+    const guide = completion?.choices?.[0]?.message?.content?.trim() || "";
+
+    if (guide) {
+      routineGuideCache = { ageInMonths, text: guide, createdAt: Date.now() };
+    }
+
+    res.json({ ageInMonths, guide, cached: false });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to generate routine guide" });
+  }
 });
 
 app.get("/ping", (req, res) => {
