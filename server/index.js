@@ -31,6 +31,19 @@ function requireAdmin(req, res, next) {
   return res.status(401).send('Unauthorized');
 }
 
+// แปลงค่า DATE จากฐานข้อมูลเป็น "YYYY-MM-DD"
+// ห้ามใช้ toISOString() เพราะจะเลื่อนวันได้ 1 วันเมื่อเซิร์ฟเวอร์ไม่ได้อยู่เขตเวลา UTC
+function toDateKey(value) {
+  if (typeof value === "string") return value.slice(0, 10);
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, "0");
+    const d = String(value.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  return String(value).slice(0, 10);
+}
+
 function getThaiHolidayLabel(type) {
   return type === "bank" ? "วันหยุดธนาคาร" : type === "public" ? "วันหยุดนักขัตฤกษ์" : type;
 }
@@ -231,7 +244,7 @@ app.get("/api/schedule", async (req, res) => {
     const month = Number(req.query.month);
     const schedule = await getCurrentMonthWorkSchedule(year, month);
     const items = schedule.map(item => ({
-      date: item.work_date.toISOString().slice(0, 10),
+      date: toDateKey(item.work_date),
       shift: item.shift,
       category: getShiftCategory(item.shift),
       categoryLabel: getShiftCategory(item.shift) === "morning" ? "เช้า" : getShiftCategory(item.shift) === "afternoon" ? "บ่าย" : getShiftCategory(item.shift) === "evening" ? "เย็น" : getShiftCategory(item.shift) === "night" ? "กลางคืน" : getShiftCategory(item.shift) === "off" ? "พัก/หยุด" : "อื่น ๆ",
@@ -253,7 +266,7 @@ app.get("/api/schedule", async (req, res) => {
     const holidays = getThaiHolidays(year, month);
     const caregiverHolidays = await getCaregiverHolidaysByMonth(year, month);
     const caregiverHolidayItems = caregiverHolidays.map(h => ({
-      date: h.holiday_date.toISOString().slice(0, 10),
+      date: toDateKey(h.holiday_date),
       description: h.description,
       type: 'caregiver',
       typeLabel: 'วันหยุดพี่เลี้ยง'
@@ -306,7 +319,7 @@ app.post('/api/chat', async (req, res) => {
     const memories = await loadMemory();
     const memoryText = memories.map(x => `- ${x.content}`).join("\n");
     const scheduleResult = await getAllWorkSchedule();
-    const scheduleText = scheduleResult.map(x => `${x.work_date.toISOString().slice(0, 10)} : ${x.shift}`).join("\n");
+    const scheduleText = scheduleResult.map(x => `${toDateKey(x.work_date)} : ${x.shift}`).join("\n");
     const history = await getChatHistory(sessionId, 20);
     const completion = await createArayaResponse({ userText: message, memoryText, scheduleText, history });
     const answer = completion?.choices?.[0]?.message?.content?.trim() || "ขออภัยค่ะ อารายายังไม่สามารถตอบได้ในขณะนี้";
@@ -479,7 +492,7 @@ app.post("/webhook", async (req, res) => {
       const result = await getAllWorkSchedule();
       const answer = result.length === 0
         ? "ยังไม่มีตารางเวรค่ะ"
-        : result.map(x => `${x.work_date.toISOString().slice(0, 10)} : ${x.shift}`).join("\n");
+        : result.map(x => `${toDateKey(x.work_date)} : ${x.shift}`).join("\n");
       await replyText(event.replyToken, answer);
       continue;
     }
@@ -516,7 +529,7 @@ app.post("/webhook", async (req, res) => {
       const memories = await loadMemory();
       const memoryText = memories.map(x => `- ${x.content}`).join("\n");
       const scheduleResult = await getAllWorkSchedule();
-      const scheduleText = scheduleResult.map(x => `${x.work_date.toISOString().slice(0, 10)} : ${x.shift}`).join("\n");
+      const scheduleText = scheduleResult.map(x => `${toDateKey(x.work_date)} : ${x.shift}`).join("\n");
       const history = await getChatHistory(lineSessionId, 20);
       const completion = await createArayaResponse({ userText: prompt, memoryText, scheduleText, history });
       const answer = completion?.choices?.[0]?.message?.content?.trim() || "ขออภัยค่ะ อารายายังไม่สามารถตอบได้ในขณะนี้";

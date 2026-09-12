@@ -207,6 +207,20 @@
         return `${monthNames[month - 1]} ${year}`;
       }
 
+      // วันปัจจุบันตามเวลาไทย (Asia/Bangkok)
+      // ห้ามใช้ new Date().toISOString() เพราะเป็นเวลา UTC — ช่วง 00:00-06:59 น. ของไทยจะได้วันก่อนหน้า
+      const APP_TIMEZONE = 'Asia/Bangkok';
+      function getTodayKey() {
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: APP_TIMEZONE,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).formatToParts(new Date());
+        const get = type => parts.find(p => p.type === type).value;
+        return `${get('year')}-${get('month')}-${get('day')}`;
+      }
+
       // ===== ตารางกิจกรรมรายชั่วโมงจาก AI =====
       function escapeHtml(str) {
         return String(str)
@@ -329,7 +343,7 @@
         const holidayMap = Object.fromEntries((holidays || []).map(h => [h.date, h]));
         const caregiverHolidayMap = Object.fromEntries((caregiverHolidays || []).map(h => [h.date, h]));
         const scheduleMap = Object.fromEntries((items || []).map(i => [i.date, i]));
-        const todayKey = new Date().toISOString().slice(0, 10);
+        const todayKey = getTodayKey();
 
         dayNames.forEach(day => {
           const headerCell = document.createElement('div');

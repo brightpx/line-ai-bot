@@ -112,6 +112,18 @@
         return res.json().catch(() => null);
       }
 
+      // แปลงค่าจาก API เป็น YYYY-MM-DD โดยไม่ผ่าน UTC
+      // (toISOString() จะเลื่อนวันได้ 1 วันเมื่อเขตเวลาเป็น Asia/Bangkok)
+      function toDateKey(value) {
+        if (typeof value === 'string') return value.slice(0, 10);
+        const d = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+
       let memPage = 1;
       const memPageSize = 20;
 
@@ -203,13 +215,7 @@
             tbody.innerHTML = '<tr><td colspan="3" class="text-muted">ยังไม่มี</td></tr>';
           } else {
             const rowsHtml = rows.map(r => {
-              // normalize date to YYYY-MM-DD for input[type=date]
-              let d = r.work_date;
-              try {
-                if (typeof d === 'object' && d !== null && d.toISOString) d = d.toISOString();
-                if (typeof d === 'string') d = d.slice(0, 10);
-              } catch (e) { d = String(r.work_date).slice(0, 10); }
-              const dateStr = d;
+              const dateStr = toDateKey(r.work_date);
               return `<tr><td class="text-muted">${dateStr}</td><td>${r.shift}</td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-edit-date="${dateStr}" data-edit-shift="${r.shift}">แก้ไข</button><button class="btn btn-outline-danger" data-date="${dateStr}">ลบ</button></div></td></tr>`;
             }).join('');
             tbody.innerHTML = rowsHtml;
@@ -253,7 +259,7 @@
             tbody.innerHTML = '<tr><td colspan="3" class="text-muted">ยังไม่มี</td></tr>';
           } else {
             tbody.innerHTML = rows.map(r => {
-              const dateStr = new Date(r.holiday_date).toISOString().slice(0, 10);
+              const dateStr = toDateKey(r.holiday_date);
               return `<tr><td class="text-muted">${dateStr}</td><td>${r.description}</td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-edit-date="${dateStr}" data-edit-description="${encodeURIComponent(r.description)}">แก้ไข</button><button class="btn btn-outline-danger" data-date="${dateStr}">ลบ</button></div></td></tr>`;
             }).join('');
           }

@@ -1,4 +1,10 @@
-const { Pool } = require("pg");
+const { Pool, types } = require("pg");
+
+// pg แปลงคอลัมน์ DATE เป็น Date ณ เที่ยงคืนตามเขตเวลาท้องถิ่นของเซิร์ฟเวอร์
+// ถ้าเซิร์ฟเวอร์ไม่ได้เป็น UTC (เช่น Asia/Bangkok) การเรียก .toISOString() จะเลื่อนวันไป 1 วัน
+// จึงสั่งให้คืนค่า DATE เป็นสตริง "YYYY-MM-DD" ตามที่เก็บในฐานข้อมูลตรง ๆ
+// (type OID 1082 = DATE)
+types.setTypeParser(1082, (value) => value);
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
