@@ -8,9 +8,11 @@ if (!GROQ_API_KEY) {
 const groq = new Groq({ apiKey: GROQ_API_KEY });
 const MODEL = "openai/gpt-oss-120b";
 
-async function createMorningSummary({ shift, tomorrowShift }) {
+async function createMorningSummary({ shift, tomorrowShift, todayKey, tomorrowKey, todayLabel, tomorrowLabel }) {
   const currentShift = shift || "ไม่มีข้อมูลเวร";
   const nextShift = tomorrowShift || "ไม่มีข้อมูลเวร";
+  const todayLine = todayKey ? ` (วันที่ ${todayKey}${todayLabel ? ` — ${todayLabel}` : ""})` : "";
+  const tomorrowLine = tomorrowKey ? ` (วันที่ ${tomorrowKey}${tomorrowLabel ? ` — ${tomorrowLabel}` : ""})` : "";
 
   return groq.chat.completions.create({
     model: MODEL,
@@ -35,12 +37,12 @@ async function createMorningSummary({ shift, tomorrowShift }) {
       {
         role: "user",
         content: `
-          ข้อมูลวันนี้
+          ข้อมูลวันนี้${todayLine}
 
           เวรแม่มุกเลิกงาน:
           ${currentShift}
 
-          ข้อมูลวันพรุ่งนี้
+          ข้อมูลวันพรุ่งนี้${tomorrowLine}
 
           เวรแม่มุก:
           ${nextShift}
@@ -54,15 +56,22 @@ async function createMorningSummary({ shift, tomorrowShift }) {
           - เมื่อกล่าวถึงเวรหรือวันหยุดของแม่มุก ให้รายงานตามข้อมูลในตารางเท่านั้น
           - ห้ามใช้คำว่า "ไม่ต้องมางาน", "ไม่ต้องเข้าเวร", "ไม่ต้องไปทำงาน"
           - ห้ามตีความหรือเพิ่มเติมข้อมูลนอกเหนือจากที่มีในตารางเวร
+          - วันที่ "วันนี้" คือ ${todayKey || "(ไม่ระบุ)"} และ "พรุ่งนี้" คือ ${tomorrowKey || "(ไม่ระบุ)"} เท่านั้น ห้ามเลื่อนวันเอง ห้ามบวก/ลบวันเพิ่ม ให้ใช้วันที่ที่ให้ไว้นี้ตรง ๆ
         `
       }
     ]
   });
 }
 
-async function createArayaResponse({ userText, memoryText, scheduleText, history }) {
+async function createArayaResponse({ userText, memoryText, scheduleText, history, todayKey, tomorrowKey, todayLabel }) {
   const memorySection = memoryText
     ? `\n\nข้อมูลที่บันทึกเพิ่มเติมจากครอบครัว\n\n${memoryText}`
+    : "";
+
+  // วันที่ปัจจุบันตามเวลาไทย — สำคัญมาก เพราะโมเดลไม่มีนาฬิกาเอง
+  // ถ้าไม่บอก โมเดลจะเดาวันที่เองแล้วตอบ "วันนี้/พรุ่งนี้" ผิดไป 1 วัน
+  const dateSection = todayKey
+    ? `\n\nวันที่ปัจจุบันตามเวลาไทย (Asia/Bangkok): ${todayKey}${todayLabel ? ` (${todayLabel})` : ""}${tomorrowKey ? `\nวันพรุ่งนี้คือ: ${tomorrowKey}` : ""}\nกฎวันที่ (สำคัญมาก):\n- เมื่อผู้ใช้ถามถึง "วันนี้" ให้หมายถึง ${todayKey} เท่านั้น\n${tomorrowKey ? `- เมื่อผู้ใช้ถามถึง "พรุ่งนี้" ให้หมายถึง ${tomorrowKey} เท่านั้น\n` : ""}- ห้ามเดาวันที่ปัจจุบันเอง ห้ามใช้วันที่จากความจำของโมเดล\n- ห้ามบวก/ลบวันเพิ่มเอง ให้จับคู่ YYYY-MM-DD ในตารางเวรตรง ๆ\n- เวลาตอบเรื่องเวร ให้ระบุวันที่ YYYY-MM-DD กำกับด้วยเสมอเพื่อกันสับสน`
     : "";
 
   // ประวัติบทสนทนาก่อนหน้า (จำกัดจำนวนข้อความและความยาว เพื่อไม่ให้ context ยาวเกินไป)
@@ -127,7 +136,7 @@ async function createArayaResponse({ userText, memoryText, scheduleText, history
       {
         role: "system",
         content: `
-          ${scheduleSection}
+          ${scheduleSection}${dateSection}
         `
       },
       ...historyMessages,

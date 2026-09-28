@@ -48,6 +48,37 @@ function getThaiHolidayLabel(type) {
   return type === "bank" ? "วันหยุดธนาคาร" : type === "public" ? "วันหยุดนักขัตฤกษ์" : type;
 }
 
+// วันที่ปัจจุบันตามเวลาไทย — ส่งให้ AI ทุกครั้ง เพราะโมเดลไม่มีนาฬิกาเอง
+// ถ้าไม่ส่ง โมเดลจะเดาวันที่เองแล้วตอบ "วันนี้/พรุ่งนี้" ผิดไป 1 วัน
+const APP_TIMEZONE = process.env.APP_TIMEZONE || "Asia/Bangkok";
+function getThaiDateContext(now = new Date()) {
+  const todayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  const [y, m, d] = todayKey.split("-").map(Number);
+  const utc = new Date(Date.UTC(y, m - 1, d));
+  utc.setUTCDate(utc.getUTCDate() + 1);
+  const tomorrowKey = utc.toISOString().slice(0, 10);
+  const todayLabel = new Intl.DateTimeFormat("th-TH", {
+    timeZone: APP_TIMEZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(now);
+  const tomorrowLabel = new Intl.DateTimeFormat("th-TH", {
+    timeZone: APP_TIMEZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${tomorrowKey}T12:00:00+07:00`));
+  return { todayKey, tomorrowKey, todayLabel, tomorrowLabel };
+}
+
 function getThaiHolidays(year, month) {
   if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
     const now = new Date();
@@ -321,7 +352,8 @@ app.post('/api/chat', async (req, res) => {
     const scheduleResult = await getAllWorkSchedule();
     const scheduleText = scheduleResult.map(x => `${toDateKey(x.work_date)} : ${x.shift}`).join("\n");
     const history = await getChatHistory(sessionId, 20);
-    const completion = await createArayaResponse({ userText: message, memoryText, scheduleText, history });
+    const { todayKey, tomorrowKey, todayLabel } = getThaiDateContext();
+    const completion = await createArayaResponse({ userText: message, memoryText, scheduleText, history, todayKey, tomorrowKey, todayLabel });
     const answer = completion?.choices?.[0]?.message?.content?.trim() || "ขออภัยค่ะ อารายายังไม่สามารถตอบได้ในขณะนี้";
 
     await saveChatMessage(sessionId, 'user', message);
@@ -391,7 +423,8 @@ app.get("/morning-report", async (req, res) => {
   try {
     const shift = await getTodayShift();
     const tomorrowShift = await getTomorrowShift();
-    const completion = await createMorningSummary({ shift, tomorrowShift });
+    const { todayKey, tomorrowKey, todayLabel, tomorrowLabel } = getThaiDateContext();
+    const completion = await createMorningSummary({ shift, tomorrowShift, todayKey, tomorrowKey, todayLabel, tomorrowLabel });
     const summary = completion?.choices?.[0]?.message?.content || "ไม่สามารถสร้างรายงานเช้าได้ขณะนี้";
 
     await pushText(LINE_GROUP_ID, summary);
@@ -501,7 +534,8 @@ app.post("/webhook", async (req, res) => {
       try {
         const shift = await getTodayShift();
         const tomorrowShift = await getTomorrowShift();
-        const completion = await createMorningSummary({ shift, tomorrowShift });
+        const { todayKey, tomorrowKey, todayLabel, tomorrowLabel } = getThaiDateContext();
+        const completion = await createMorningSummary({ shift, tomorrowShift, todayKey, tomorrowKey, todayLabel, tomorrowLabel });
         const summary = completion?.choices?.[0]?.message?.content || "ขออภัยค่ะ ยังไม่สามารถสร้างรายงานเช้าได้ในขณะนี้";
         await replyText(event.replyToken, summary);
       } catch (err) {
@@ -531,7 +565,8 @@ app.post("/webhook", async (req, res) => {
       const scheduleResult = await getAllWorkSchedule();
       const scheduleText = scheduleResult.map(x => `${toDateKey(x.work_date)} : ${x.shift}`).join("\n");
       const history = await getChatHistory(lineSessionId, 20);
-      const completion = await createArayaResponse({ userText: prompt, memoryText, scheduleText, history });
+      const { todayKey, tomorrowKey, todayLabel } = getThaiDateContext();
+      const completion = await createArayaResponse({ userText: prompt, memoryText, scheduleText, history, todayKey, tomorrowKey, todayLabel });
       const answer = completion?.choices?.[0]?.message?.content?.trim() || "ขออภัยค่ะ อารายายังไม่สามารถตอบได้ในขณะนี้";
 
       await saveChatMessage(lineSessionId, 'user', prompt);
