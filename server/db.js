@@ -243,7 +243,7 @@ async function getCaregiverHolidaysByMonth(year, month) {
   return result.rows;
 }
 
-async function getAllWorkSchedule(limit = 70) {
+async function getAllWorkSchedule(limit = 1000) {
   const result = await pool.query(
     `
       SELECT *

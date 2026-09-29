@@ -682,10 +682,16 @@ app.post("/webhook", async (req, res) => {
 
     if (userText === "/ตารางเวร") {
       const result = await getAllWorkSchedule();
-      const answer = result.length === 0
-        ? "ยังไม่มีตารางเวรค่ะ"
-        : result.map(x => `${toDateKey(x.work_date)} : ${x.shift}`).join("\n");
-      await replyText(event.replyToken, answer);
+      if (result.length === 0) {
+        await replyText(event.replyToken, "ยังไม่มีตารางเวรค่ะ");
+      } else {
+        const answer = result.map(x => `${toDateKey(x.work_date)} : ${x.shift}`).join("\n");
+        // กันข้อความเกินโควตา LINE (5000 ตัวอักษร/ข้อความ)
+        const safe = answer.length > 4500
+          ? answer.substring(0, 4500) + "\n…(แสดงไม่หมด ดูทั้งหมดในเว็บค่ะ)"
+          : answer;
+        await replyText(event.replyToken, safe);
+      }
       continue;
     }
 
