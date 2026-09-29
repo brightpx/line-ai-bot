@@ -5,6 +5,15 @@ const { initDb, loadMemory, saveMemory, deleteAllMemories, deleteMemoriesByKeywo
 const { replyText, pushText } = require("./lineApi");
 const { createMorningSummary, createArayaResponse, createDailyRoutineGuide } = require("./ai");
 const getShiftCategory = require("../shared/shiftCategory");
+const getShiftCategoryLabel = getShiftCategory.getShiftCategoryLabel || ((c) => ({
+  shift_8_16: "8:00-16:00",
+  shift_8_20: "8:00-20:00",
+  shift_6_14: "6:00-14:00",
+  shift_8_22: "8:00-22:00",
+  night: "กลางคืน",
+  off: "หยุด",
+  other: "อื่นๆ",
+}[c] || "อื่นๆ"));
 const Holidays = require("date-holidays");
 
 const hd = new Holidays("TH");
@@ -77,6 +86,129 @@ function getThaiDateContext(now = new Date()) {
     year: "numeric",
   }).format(new Date(`${tomorrowKey}T12:00:00+07:00`));
   return { todayKey, tomorrowKey, todayLabel, tomorrowLabel };
+}
+
+// ---------- /เวร แบบพิมพ์ง่าย ----------
+function toAsciiDigits(s) {
+  return String(s || "").replace(/[๐-๙]/g, (ch) => String("๐๑๒๓๔๕๖๗๘๙".indexOf(ch)));
+}
+function pad2(n) { return String(n).padStart(2, "0"); }
+function toKey(y, m, d) { return `${y}-${pad2(m)}-${pad2(d)}`; }
+function isValidKey(key) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key || "");
+  if (!m) return false;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
+function addDaysKey(key, n) {
+  const [y, m, d] = key.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().slice(0, 10);
+}
+
+// รหัสเวร: D9=8:00-16:00, D9A12=8:00-20:00, M1=6:00-14:00,
+// D9A30=8:00-22:00, X=หยุด, กลางคืน, อื่นๆ
+function parseShiftEasy(raw) {
+  const t = toAsciiDigits(raw).trim();
+  if (!t) return null;
+  const v = t.toLowerCase().replace(/[\s\u00a0]+/g, "");
+  const code = v.replace(/[^a-z0-9]/g, "");
+  if (code === "d9") return "8:00-16:00";
+  if (code === "d9a12" || code === "a12") return "8:00-20:00";
+  if (code === "m1") return "6:00-14:00";
+  if (code === "d9a30" || code === "a30") return "8:00-22:00";
+  if (code === "x") return "หยุด";
+  if (v.includes("หยุด") || v.includes("พัก") || v === "ห" || v === "off") return "หยุด";
+  if (v.includes("กลางคืน") || v.includes("ดึก") || v === "ด" || v.includes("night")) return "กลางคืน";
+  if (v.includes("อื่น")) return "อื่นๆ";
+  const range = v.match(/(\d{1,2})(?::?\d{2})?\D+(\d{1,2})(?::?\d{2})?/);
+  if (range) {
+    const s = Number(range[1]), e = Number(range[2]);
+    if (s === 8 && e === 16) return "8:00-16:00";
+    if (s === 8 && e === 20) return "8:00-20:00";
+    if (s === 6 && e === 14) return "6:00-14:00";
+    if (s === 8 && e === 22) return "8:00-22:00";
+  }
+  if (v.includes("เช้า") || v.includes("morning")) return "6:00-14:00";
+  if (v.includes("บ่าย") || v.includes("สี่โมง") || v.includes("4โมง") || v.includes("afternoon")) return "8:00-16:00";
+  if (v.includes("เย็น") || v.includes("สองทุ่ม") || v.includes("evening")) return "8:00-22:00";
+  return t;
+}
+
+// รับ "2026-09-30", "30/9/68", "30/9", "30", "วันนี้", "พรุ่งนี้", "มะรืน", "เมื่อวาน"
+function parseSingleDateEasy(token, baseKey) {
+  const t = toAsciiDigits(token).trim().toLowerCase().replace(/\s+/g, "");
+  if (!t) return null;
+  const [by, bm] = baseKey.split("-").map(Number);
+  if (t === "วันนี้" || t === "today") return baseKey;
+  if (t === "พรุ่งนี้" || t === "พรุ่ง" || t === "tomorrow") return addDaysKey(baseKey, 1);
+  if (t.startsWith("มะรืน")) return addDaysKey(baseKey, 2);
+  if (t === "เมื่อวาน" || t === "yesterday") return addDaysKey(baseKey, -1);
+  let m;
+  if ((m = /^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/.exec(t))) {
+    const key = toKey(Number(m[1]), Number(m[2]), Number(m[3]));
+    return isValidKey(key) ? key : null;
+  }
+  if ((m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/.exec(t))) {
+    let d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+    if (y > 2400) y -= 543; // พ.ศ. → ค.ศ.
+    else if (y < 100) {
+      const be = 2500 + y, ce = be - 543;
+      y = ce < 2000 ? 2000 + y : ce;
+    }
+    const key = toKey(y, mo, d);
+    return isValidKey(key) ? key : null;
+  }
+  if ((m = /^(\d{1,2})[\/\-.](\d{1,2})$/.exec(t))) {
+    const key = toKey(by, Number(m[2]), Number(m[1]));
+    return isValidKey(key) ? key : null;
+  }
+  if ((m = /^(\d{1,2})$/.exec(t))) {
+    const key = toKey(by, bm, Number(m[1]));
+    return isValidKey(key) ? key : null;
+  }
+  return null;
+}
+
+// รับ "30", "30/9", "30,31", "30/9-2/10" → รายชื่อ YYYY-MM-DD
+function expandDateExpr(expr, baseKey) {
+  const clean = toAsciiDigits(expr).trim().replace(/[、，]/g, ",").replace(/～|~|—|–|ถึง/g, "-");
+  if (!clean) return null;
+  const items = clean.split(",").map((s) => s.trim()).filter(Boolean);
+  if (!items.length) return null;
+  const out = [];
+  for (const item of items) {
+    const single = parseSingleDateEasy(item.replace(/\s+/g, ""), baseKey);
+    if (single) { out.push(single); continue; }
+    const noSpace = item.replace(/\s+/g, "");
+    const segs = noSpace.split("-").filter((s) => s !== "");
+    if (segs.length === 2) {
+      const a = parseSingleDateEasy(segs[0], baseKey);
+      if (!a) return null;
+      let b = parseSingleDateEasy(segs[1], a);
+      if (!b) return null;
+      if (b <= a) {
+        if (/^\d{1,2}$/.test(segs[1])) {
+          let [y, mo] = a.split("-").map(Number);
+          mo += 1; if (mo > 12) { mo = 1; y += 1; }
+          b = toKey(y, mo, Number(segs[1]));
+          if (!isValidKey(b) || b <= a) return null;
+        } else if (/^\d{1,2}[\/\-.]\d{1,2}$/.test(segs[1])) {
+          const [d, mo] = segs[1].split(/[\/\-.]/).map(Number);
+          b = toKey(Number(a.slice(0, 4)) + 1, mo, d);
+          if (!isValidKey(b) || b <= a) return null;
+        } else return null;
+      }
+      let cur = a, guard = 0;
+      while (cur <= b && guard < 62) { out.push(cur); cur = addDaysKey(cur, 1); guard++; }
+      continue;
+    }
+    return null;
+  }
+  return out.length ? out : null;
 }
 
 function getThaiHolidays(year, month) {
@@ -278,7 +410,7 @@ app.get("/api/schedule", async (req, res) => {
       date: toDateKey(item.work_date),
       shift: item.shift,
       category: getShiftCategory(item.shift),
-      categoryLabel: getShiftCategory(item.shift) === "morning" ? "เช้า" : getShiftCategory(item.shift) === "afternoon" ? "บ่าย" : getShiftCategory(item.shift) === "evening" ? "เย็น" : getShiftCategory(item.shift) === "night" ? "กลางคืน" : getShiftCategory(item.shift) === "off" ? "พัก/หยุด" : "อื่น ๆ",
+      categoryLabel: getShiftCategoryLabel(getShiftCategory(item.shift)),
       createdAt: new Date(item.created_at).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })
     }));
 
@@ -286,9 +418,10 @@ app.get("/api/schedule", async (req, res) => {
       acc[item.category] = (acc[item.category] || 0) + 1;
       return acc;
     }, {
-      morning: 0,
-      afternoon: 0,
-      evening: 0,
+      shift_8_16: 0,
+      shift_8_20: 0,
+      shift_6_14: 0,
+      shift_8_22: 0,
       night: 0,
       off: 0,
       other: 0
@@ -472,19 +605,45 @@ app.post("/webhook", async (req, res) => {
     }
 
     if (userText.startsWith("/เวร")) {
-      const rows = userText.replace("/เวร", "").trim().split("\n").filter(x => x.trim());
-      let count = 0;
+      const body = userText.replace(/^\/เวร/, "").trim();
+      if (!body) {
+        await replyText(event.replyToken, "พิมพ์แบบง่ายได้ค่ะ เช่น\n/เวร\n2026-10-1 D9\n30/9-2/10 X\nพรุ่งนี้ D9A12\n\nรหัสเวร: D9=8:00-16:00, D9A12=8:00-20:00, M1=6:00-14:00, D9A30=8:00-22:00, X=หยุด, กลางคืน, อื่นๆ (พิมพ์ A12/A30 สั้นๆ แทน D9A12/D9A30 ก็ได้)");
+        continue;
+      }
+      const { todayKey } = getThaiDateContext();
+      const rows = body.split("\n").map((x) => x.trim()).filter((x) => x);
+      const saved = [];
+      const failed = [];
 
       for (const row of rows) {
-        const parts = row.trim().split(" ");
-        if (parts.length < 2) continue;
-        const workDate = parts[0];
-        const shift = parts.slice(1).join(" ");
-        await upsertWorkScheduleEntry(workDate, shift);
-        count++;
+        const tokens = row.split(/\s+/);
+        let dates = null;
+        let shiftRaw = null;
+        for (let k = tokens.length - 1; k >= 1; k--) {
+          const cand = expandDateExpr(tokens.slice(0, k).join(" "), todayKey);
+          if (cand && cand.length > 0 && cand.length <= 62) {
+            dates = cand;
+            shiftRaw = tokens.slice(k).join(" ");
+            break;
+          }
+        }
+        if (!dates) { failed.push(row); continue; }
+        const shift = parseShiftEasy(shiftRaw || "");
+        if (!shift) { failed.push(row); continue; }
+        for (const d of dates) {
+          await upsertWorkScheduleEntry(d, shift);
+          saved.push(`${d} : ${shift}`);
+        }
       }
 
-      await replyText(event.replyToken, `บันทึกตารางเวรเรียบร้อย ${count} รายการค่ะ`);
+      let msg = saved.length
+        ? `บันทึกเวรเรียบร้อย ${saved.length} วันค่ะ\n${saved.slice(0, 30).join("\n")}`
+        : "ยังไม่ได้บันทึกค่ะ รูปแบบไม่ถูก";
+      if (saved.length > 30) msg += `\n…และอีก ${saved.length - 30} วัน`;
+      if (failed.length) {
+        msg += `\n\nข้าม ${failed.length} บรรทัด:\n${failed.slice(0, 10).join("\n")}\n\nตัวอย่าง:\n2026-10-1 D9\n30/9-2/10 X\nพรุ่งนี้ 8-16`;
+      }
+      await replyText(event.replyToken, msg.substring(0, 4000));
       continue;
     }
 

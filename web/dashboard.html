@@ -187,10 +187,11 @@
     <script>
       function getBadgeClass(category) {
         return {
-          morning: 'bg-primary',
-          afternoon: 'bg-warning text-dark',
-          evening: 'bg-purple text-white',
-          night: 'bg-info text-dark',
+          shift_8_16: 'bg-primary',
+          shift_8_20: 'bg-warning text-dark',
+          shift_6_14: 'bg-info text-dark',
+          shift_8_22: 'bg-purple text-white',
+          night: 'bg-dark text-white',
           off: 'bg-success',
           other: 'bg-secondary'
         }[category] || 'bg-secondary';
@@ -519,8 +520,8 @@
 
         renderCalendar(scheduleItems, holidays, caregiverHolidays, year, month);
 
-        const chartData = [counts.morning, counts.afternoon, counts.evening, counts.night, counts.off, counts.other];
-        const chartLabels = ['เช้า', 'บ่าย', 'เย็น', 'กลางคืน', 'พัก/หยุด', 'อื่น ๆ'];
+        const chartData = [counts.shift_8_16 || 0, counts.shift_8_20 || 0, counts.shift_6_14 || 0, counts.shift_8_22 || 0, counts.night || 0, counts.off || 0, counts.other || 0];
+        const chartLabels = ['8:00-16:00', '8:00-20:00', '6:00-14:00', '8:00-22:00', 'กลางคืน', 'หยุด', 'อื่นๆ'];
 
               const ctx = document.getElementById('shiftChart');
         if (!ctx) {
@@ -532,6 +533,7 @@
 
         const hasDataset = window.shiftChart && window.shiftChart.data && Array.isArray(window.shiftChart.data.datasets) && window.shiftChart.data.datasets[0];
         if (hasDataset) {
+          window.shiftChart.data.labels = chartLabels;
           window.shiftChart.data.datasets[0].data = chartData;
           window.shiftChart.update();
         } else {
@@ -544,8 +546,9 @@
                 backgroundColor: [
                   'rgba(56, 189, 248, 0.9)',
                   'rgba(251, 191, 36, 0.9)',
-                  'rgba(168, 85, 247, 0.9)',
                   'rgba(6, 182, 212, 0.9)',
+                  'rgba(168, 85, 247, 0.9)',
+                  'rgba(30, 58, 95, 0.9)',
                   'rgba(16, 185, 129, 0.9)',
                   'rgba(100, 116, 139, 0.9)'
                 ],
